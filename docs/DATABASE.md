@@ -2,7 +2,7 @@
 
 Schéma de référence de la Phase 2, stabilisé sur 26 migrations (`backend/database/migrations/2026_08_20_100001` à `100026`). Ce document remplace `docs/schema.md` (esquisse de Phase 0, conservée pour mémoire mais non tenue à jour).
 
-**État de vérification** : Pint et PHPStan niveau 6 passent sans erreur sur l'ensemble du schéma. L'exécution complète (`php artisan migrate:fresh --seed` + `php artisan test`) est bloquée par l'absence de l'extension **PostGIS** sur le serveur PostgreSQL 17 local (`postgis.control` introuvable) — toutes les migrations jusqu'à `100002_enable_postgres_extensions_and_search_config` s'exécutent, celle-ci échoue systématiquement au même endroit. Chaque migration a été relue manuellement et testée dans la mesure du possible ; la vérification de bout en bout aura lieu dès que PostGIS sera installé côté serveur (Stack Builder). Voir « Vérification » en fin de document.
+**État de vérification** : ✅ complet. PostGIS a été installé sur le serveur PostgreSQL 17 local (Stack Builder) et Memurai (Redis-compatible, requis par `spatie/laravel-permission` au boot applicatif) a été installé manuellement après l'échec de l'installation automatisée. `php artisan migrate:fresh --seed` s'exécute intégralement (26 migrations + 6 seeders) et `php artisan test` passe en entier (18/18, 21 assertions, y compris les 7 tests dédiés du schéma — section 6). Pint et PHPStan niveau 6 passent sans erreur. Voir « Vérification » en fin de document.
 
 ---
 
@@ -151,6 +151,7 @@ Consolidation de toutes les décisions non triviales prises pendant l'implément
 
 ### Autres
 - `PageRoute` : le modèle Eloquent de la table `routes` est nommé `PageRoute` (et non `Route`) pour éviter toute collision avec la façade de routing Laravel `Illuminate\Support\Facades\Route`.
+- La carte polymorphique (`Relation::enforceMorphMap`, `AppServiceProvider::boot()`) inclut `'user' => User::class` : `spatie/laravel-permission` rattache les rôles via une relation `MorphToMany` (`model_has_roles`), qui échoue sous `enforceMorphMap()` si le modèle concerné n'y figure pas — découvert au premier `migrate:fresh --seed` complet, via l'échec de `$admin->assignRole()` dans `DatabaseSeeder`.
 - Regex de `countries.identifier_config` (SIREN/SIRET, BCE, MF, ICE, NIF, NEQ) : valeurs de référence saisies pour le seeder, **à faire valider par un expert-comptable local par pays avant mise en production**.
 - Nomenclature NAF Rev. 2 seedée (`NafNomenclatureSeeder`) : 21 sections + 88 divisions, libellés reproduits depuis la nomenclature publique INSEE — à recouper avec le fichier officiel avant tout usage en production. Les niveaux plus fins (groupe/classe/sous-classe) sont du ressort du pipeline d'import (Domaine H), pas de ce seeder.
 
@@ -176,7 +177,7 @@ Par défaut : `restrictOnDelete()`. Cascade (`cascadeOnDelete()`) uniquement sur
 | `CityActivityContentUniquenessTest` | les deux index `UNIQUE` partiels empêchent les doublons côté activité et côté secteur |
 | `FullTextSearchAccentTest` | la config `french_unaccent` retrouve un nom accentué via une requête sans accent / en majuscules |
 
-Ces 7 fichiers (16 assertions) s'exécutent jusqu'au bootstrap `RefreshDatabase` et échouent tous au même point que `migrate:fresh` (extension `postgis` manquante) — preuve que le harnais de test (connexion pgsql, migrations, factories) est correctement câblé, en attendant l'installation de PostGIS pour la vérification finale.
+Ces 7 fichiers (16 assertions) passent intégralement, avec l'ensemble de la suite (`php artisan test`, 18 tests, 21 assertions).
 
 ---
 
@@ -186,8 +187,8 @@ Ces 7 fichiers (16 assertions) s'exécutent jusqu'au bootstrap `RefreshDatabase`
 cd backend
 vendor/bin/pint --test
 vendor/bin/phpstan analyse --memory-limit=512M   # niveau 6, 0 erreur sur l'ensemble du schéma
-php artisan migrate:fresh --seed                  # bloqué : extension postgis manquante localement
-php artisan test                                  # bloqué pour la même raison (RefreshDatabase)
+php artisan migrate:fresh --seed                  # ✅ 26 migrations + 6 seeders
+php artisan test                                  # ✅ 18 passed (21 assertions)
 ```
 
-Une fois PostGIS installé sur le serveur PostgreSQL 17 local, relancer les deux dernières commandes pour la vérification de bout en bout prévue par le plan de Phase 2.
+Prérequis locaux (Windows) : PostGIS installé via Stack Builder (`bin/StackBuilder.exe`, catégorie *Spatial Extensions*) ; Memurai (compatible Redis, `CACHE_STORE=redis`) installé et démarré comme service — `spatie/laravel-permission` sollicite le cache au boot de l'application, y compris pendant les migrations/seeders.

@@ -13,6 +13,7 @@ use App\Models\Company;
 use App\Models\District;
 use App\Models\DistrictContent;
 use App\Models\PointOfInterest;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
 
@@ -30,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
         // content_source_links.content_type) : ne pas coupler le contenu de
         // la base à la structure de namespace de l'application.
         Relation::enforceMorphMap([
+            'user' => User::class,
             'city' => City::class,
             'district' => District::class,
             'activity' => Activity::class,
