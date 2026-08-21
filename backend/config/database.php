@@ -97,6 +97,14 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+
+            // spatie/laravel-backup (spatie/db-dumper) : chemin explicite vers
+            // pg_dump si absent du PATH (cas Windows/WAMP en local — sur le
+            // VPS Ubuntu, `postgresql-client-17` le place sur le PATH,
+            // laisser vide).
+            'dump' => array_filter([
+                'dump_binary_path' => env('PG_DUMP_BINARY_PATH'),
+            ]),
         ],
 
         'sqlsrv' => [
