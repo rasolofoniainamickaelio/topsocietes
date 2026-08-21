@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\ContactVisibilityAction;
-use App\Enums\ContactVisibilityTrigger;
-use App\Models\Company;
-use App\Models\ContactVisibilityEvent;
+use App\Domain\Billing\Enums\ContactVisibilityAction;
+use App\Domain\Billing\Enums\ContactVisibilityTrigger;
+use App\Domain\Billing\Models\ContactVisibilityEvent;
+use App\Domain\Company\Models\Company;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

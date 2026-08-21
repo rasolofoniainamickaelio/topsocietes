@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\ContentSectionScope;
-use App\Models\ContentSection;
+use App\Domain\Content\Enums\ContentSectionScope;
+use App\Domain\Content\Models\ContentSection;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

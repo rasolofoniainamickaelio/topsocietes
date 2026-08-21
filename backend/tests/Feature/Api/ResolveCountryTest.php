@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Models\Country;
+use App\Domain\Geo\Models\Country;
 
 it('resolves an active country from its subdomain', function (): void {
     Country::factory()->create(['subdomain' => 'fr', 'code' => 'FR', 'name' => 'France', 'is_active' => true]);

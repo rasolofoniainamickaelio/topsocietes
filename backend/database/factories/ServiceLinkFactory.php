@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\ServiceLink;
+use App\Domain\Ads\Models\ServiceLink;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

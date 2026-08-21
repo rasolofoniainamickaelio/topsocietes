@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\DisputeStatus;
-use App\Models\Company;
-use App\Models\DisputeReport;
+use App\Domain\Company\Models\Company;
+use App\Domain\Moderation\Enums\DisputeStatus;
+use App\Domain\Moderation\Models\DisputeReport;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

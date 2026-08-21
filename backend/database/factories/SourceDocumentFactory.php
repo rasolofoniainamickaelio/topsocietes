@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\City;
-use App\Models\Source;
-use App\Models\SourceDocument;
+use App\Domain\Content\Models\Source;
+use App\Domain\Content\Models\SourceDocument;
+use App\Domain\Geo\Models\City;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Enums\AdDevice;
-use App\Models\AdSlot;
+use App\Domain\Ads\Enums\AdDevice;
+use App\Domain\Ads\Models\AdSlot;
 use Illuminate\Database\Seeder;
 
 /**

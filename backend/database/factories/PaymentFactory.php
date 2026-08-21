@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\PaymentProvider;
-use App\Enums\PaymentStatus;
-use App\Models\Payment;
-use App\Models\Subscription;
+use App\Domain\Billing\Enums\PaymentProvider;
+use App\Domain\Billing\Enums\PaymentStatus;
+use App\Domain\Billing\Models\Payment;
+use App\Domain\Billing\Models\Subscription;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

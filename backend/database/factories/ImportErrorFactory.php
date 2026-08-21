@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\ImportBatch;
-use App\Models\ImportError;
+use App\Domain\Import\Models\ImportBatch;
+use App\Domain\Import\Models\ImportError;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

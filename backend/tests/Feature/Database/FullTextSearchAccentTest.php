@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Models\City;
+use App\Domain\Geo\Models\City;
 use Illuminate\Support\Facades\DB;
 
 /**

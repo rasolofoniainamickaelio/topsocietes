@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Domain\Company\Models\CompanyContact;
 use App\Enums\PermissionName;
-use App\Models\CompanyContact;
 use App\Models\User;
 
 class CompanyContactPolicy

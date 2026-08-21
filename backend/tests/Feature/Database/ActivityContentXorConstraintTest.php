@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Models\Activity;
-use App\Models\ActivityContent;
-use App\Models\Sector;
+use App\Domain\Content\Models\ActivityContent;
+use App\Domain\Taxonomy\Models\Activity;
+use App\Domain\Taxonomy\Models\Sector;
 use Illuminate\Database\QueryException;
 
 it('accepts a row with only activity_id set', function (): void {

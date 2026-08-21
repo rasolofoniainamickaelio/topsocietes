@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\ContactSource;
-use App\Enums\ContactType;
-use App\Enums\ContactVisibility;
-use App\Models\Company;
-use App\Models\CompanyContact;
+use App\Domain\Company\Enums\ContactSource;
+use App\Domain\Company\Enums\ContactType;
+use App\Domain\Company\Enums\ContactVisibility;
+use App\Domain\Company\Models\Company;
+use App\Domain\Company\Models\CompanyContact;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

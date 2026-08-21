@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Domain\Company\Models\CompanyClaim;
 use App\Enums\PermissionName;
-use App\Models\CompanyClaim;
 use App\Models\User;
 
 class CompanyClaimPolicy

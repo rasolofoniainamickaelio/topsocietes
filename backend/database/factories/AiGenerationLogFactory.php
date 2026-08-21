@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\AiGenerationJob;
-use App\Models\AiGenerationLog;
+use App\Domain\Ai\Models\AiGenerationJob;
+use App\Domain\Ai\Models\AiGenerationLog;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\Company;
-use App\Models\CompanyNearbyPoi;
-use App\Models\PointOfInterest;
+use App\Domain\Company\Models\Company;
+use App\Domain\Company\Models\CompanyNearbyPoi;
+use App\Domain\Geo\Models\PointOfInterest;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

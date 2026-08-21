@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\ContentSection;
-use App\Enums\ContentStatus;
-use App\Models\Activity;
-use App\Models\City;
-use App\Models\CityActivityContent;
-use App\Models\Sector;
+use App\Domain\Content\Enums\ContentSection;
+use App\Domain\Content\Enums\ContentStatus;
+use App\Domain\Content\Models\CityActivityContent;
+use App\Domain\Geo\Models\City;
+use App\Domain\Taxonomy\Models\Activity;
+use App\Domain\Taxonomy\Models\Sector;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

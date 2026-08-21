@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\PublicationDecision;
-use App\Models\PagePublicationDecision;
-use App\Models\PageRoute;
+use App\Domain\Seo\Enums\PublicationDecision;
+use App\Domain\Seo\Models\PagePublicationDecision;
+use App\Domain\Seo\Models\PageRoute;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

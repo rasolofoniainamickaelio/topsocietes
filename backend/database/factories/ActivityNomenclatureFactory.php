@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\ActivityNomenclature;
+use App\Domain\Taxonomy\Models\ActivityNomenclature;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

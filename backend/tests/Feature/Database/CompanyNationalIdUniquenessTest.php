@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Models\Company;
-use App\Models\Country;
+use App\Domain\Company\Models\Company;
+use App\Domain\Geo\Models\Country;
 use Illuminate\Database\QueryException;
 
 it('rejects a duplicate national_id within the same country', function (): void {

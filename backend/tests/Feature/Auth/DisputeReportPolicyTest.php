@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Domain\Moderation\Models\DisputeReport;
 use App\Enums\RoleName;
-use App\Models\DisputeReport;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Spatie\Permission\PermissionRegistrar;

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\ClaimVerificationMethod;
-use App\Enums\CompanyClaimStatus;
-use App\Models\Company;
-use App\Models\CompanyClaim;
+use App\Domain\Company\Enums\ClaimVerificationMethod;
+use App\Domain\Company\Enums\CompanyClaimStatus;
+use App\Domain\Company\Models\Company;
+use App\Domain\Company\Models\CompanyClaim;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 

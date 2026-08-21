@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Enums\ContactVisibility;
-use App\Models\Company;
-use App\Models\CompanyContact;
+use App\Domain\Company\Enums\ContactVisibility;
+use App\Domain\Company\Models\Company;
+use App\Domain\Company\Models\CompanyContact;
 use Illuminate\Support\Facades\DB;
 
 /**

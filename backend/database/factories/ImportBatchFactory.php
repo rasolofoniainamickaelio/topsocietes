@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\ImportFormat;
-use App\Enums\ImportStatus;
-use App\Models\Country;
-use App\Models\ImportBatch;
+use App\Domain\Geo\Models\Country;
+use App\Domain\Import\Enums\ImportFormat;
+use App\Domain\Import\Enums\ImportStatus;
+use App\Domain\Import\Models\ImportBatch;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

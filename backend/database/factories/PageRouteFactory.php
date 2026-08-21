@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\PageType;
-use App\Models\Country;
-use App\Models\PageRoute;
+use App\Domain\Geo\Models\Country;
+use App\Domain\Seo\Enums\PageType;
+use App\Domain\Seo\Models\PageRoute;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

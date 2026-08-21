@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\CompanyStatus;
-use App\Enums\GeocodingStatus;
-use App\Models\Company;
-use App\Models\Establishment;
+use App\Domain\Company\Enums\CompanyStatus;
+use App\Domain\Company\Enums\GeocodingStatus;
+use App\Domain\Company\Models\Company;
+use App\Domain\Company\Models\Establishment;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

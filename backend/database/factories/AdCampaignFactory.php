@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\AdCampaign;
-use App\Models\AdSlot;
+use App\Domain\Ads\Models\AdCampaign;
+use App\Domain\Ads\Models\AdSlot;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

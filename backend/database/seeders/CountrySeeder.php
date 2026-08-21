@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Models\Country;
+use App\Domain\Geo\Models\Country;
 use Illuminate\Database\Seeder;
 
 /**

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\CityContent;
-use App\Models\ContentSourceLink;
-use App\Models\Fact;
+use App\Domain\Content\Models\CityContent;
+use App\Domain\Content\Models\ContentSourceLink;
+use App\Domain\Content\Models\Fact;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

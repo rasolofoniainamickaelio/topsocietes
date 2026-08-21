@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\AiProvider;
-use App\Enums\ContentSection;
-use App\Enums\GenerationStatus;
-use App\Models\AiGenerationJob;
-use App\Models\AiPrompt;
-use App\Models\City;
+use App\Domain\Ai\Enums\AiProvider;
+use App\Domain\Ai\Enums\GenerationStatus;
+use App\Domain\Ai\Models\AiGenerationJob;
+use App\Domain\Ai\Models\AiPrompt;
+use App\Domain\Content\Enums\ContentSection;
+use App\Domain\Geo\Models\City;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Domain\Moderation\Models\DisputeReport;
 use App\Enums\PermissionName;
-use App\Models\DisputeReport;
 use App\Models\User;
 
 class DisputeReportPolicy

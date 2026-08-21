@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\ContentSectionScope;
-use App\Models\AiPrompt;
+use App\Domain\Ai\Models\AiPrompt;
+use App\Domain\Content\Enums\ContentSectionScope;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

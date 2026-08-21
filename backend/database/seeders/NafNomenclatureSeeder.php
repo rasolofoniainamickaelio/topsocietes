@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Models\Activity;
-use App\Models\ActivityNomenclature;
-use App\Models\Country;
+use App\Domain\Geo\Models\Country;
+use App\Domain\Taxonomy\Models\Activity;
+use App\Domain\Taxonomy\Models\ActivityNomenclature;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 

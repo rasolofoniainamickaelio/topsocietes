@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Enums\BillingPeriod;
-use App\Models\Plan;
+use App\Domain\Billing\Enums\BillingPeriod;
+use App\Domain\Billing\Models\Plan;
 use Illuminate\Database\Seeder;
 
 /**

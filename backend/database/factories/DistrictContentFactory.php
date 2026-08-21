@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\ContentSection;
-use App\Enums\ContentStatus;
-use App\Models\District;
-use App\Models\DistrictContent;
+use App\Domain\Content\Enums\ContentSection;
+use App\Domain\Content\Enums\ContentStatus;
+use App\Domain\Content\Models\DistrictContent;
+use App\Domain\Geo\Models\District;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

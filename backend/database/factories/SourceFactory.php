@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\SourceProvider;
-use App\Models\Source;
+use App\Domain\Content\Enums\SourceProvider;
+use App\Domain\Content\Models\Source;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

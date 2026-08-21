@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Enums\CompanyClaimStatus;
+use App\Domain\Company\Enums\CompanyClaimStatus;
+use App\Domain\Company\Models\Company;
+use App\Domain\Company\Models\CompanyClaim;
 use App\Enums\RoleName;
-use App\Models\Company;
-use App\Models\CompanyClaim;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Spatie\Permission\PermissionRegistrar;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\DisputeEvent;
-use App\Models\DisputeReport;
+use App\Domain\Moderation\Models\DisputeEvent;
+use App\Domain\Moderation\Models\DisputeReport;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

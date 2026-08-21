@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\PoiCategory;
-use App\Enums\PoiProvider;
-use App\Models\Country;
-use App\Models\PointOfInterest;
+use App\Domain\Geo\Enums\PoiCategory;
+use App\Domain\Geo\Enums\PoiProvider;
+use App\Domain\Geo\Models\Country;
+use App\Domain\Geo\Models\PointOfInterest;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\DB;
 

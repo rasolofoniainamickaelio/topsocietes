@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use App\Enums\CompanyClaimStatus;
+use App\Domain\Company\Enums\CompanyClaimStatus;
+use App\Domain\Company\Models\Company;
 use App\Enums\PermissionName;
-use App\Models\Company;
 use App\Models\User;
 
 class CompanyPolicy

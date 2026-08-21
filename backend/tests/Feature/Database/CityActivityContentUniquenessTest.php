@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Enums\ContentSection;
-use App\Models\Activity;
-use App\Models\City;
-use App\Models\CityActivityContent;
-use App\Models\Sector;
+use App\Domain\Content\Enums\ContentSection;
+use App\Domain\Content\Models\CityActivityContent;
+use App\Domain\Geo\Models\City;
+use App\Domain\Taxonomy\Models\Activity;
+use App\Domain\Taxonomy\Models\Sector;
 use Illuminate\Database\QueryException;
 
 it('rejects a duplicate (city, activity, locale, section) row', function (): void {

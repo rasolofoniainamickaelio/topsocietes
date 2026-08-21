@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Enums\ContentSection;
-use App\Enums\ContentSectionScope;
-use App\Models\ContentSection as ContentSectionModel;
+use App\Domain\Content\Enums\ContentSection;
+use App\Domain\Content\Enums\ContentSectionScope;
+use App\Domain\Content\Models\ContentSection as ContentSectionModel;
 use Illuminate\Database\Seeder;
 
 /**
  * Amorce la table de référence `content_sections` à partir des clés
- * connues de `App\Enums\ContentSection`. `faq` est partagée par
+ * connues de `App\Domain\Content\Enums\ContentSection`. `faq` est partagée par
  * `activity_contents` et `city_activity_contents` (voir docblock de
  * l'enum) : comme `content_sections.key` est unique globalement, elle
  * n'a qu'une seule ligne de configuration ici (scope = Activity, le plus

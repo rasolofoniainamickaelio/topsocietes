@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\Country;
-use App\Models\ImportMapping;
+use App\Domain\Geo\Models\Country;
+use App\Domain\Import\Models\ImportMapping;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

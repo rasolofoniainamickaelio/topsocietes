@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Company\Models\Company;
+use App\Domain\Content\Models\ActivityContent;
+use App\Domain\Content\Models\CityActivityContent;
+use App\Domain\Content\Models\CityContent;
+use App\Domain\Content\Models\DistrictContent;
+use App\Domain\Geo\Models\City;
+use App\Domain\Geo\Models\District;
+use App\Domain\Geo\Models\PointOfInterest;
+use App\Domain\Taxonomy\Models\Activity;
 use App\Enums\RoleName;
-use App\Models\Activity;
-use App\Models\ActivityContent;
-use App\Models\City;
-use App\Models\CityActivityContent;
-use App\Models\CityContent;
-use App\Models\Company;
-use App\Models\District;
-use App\Models\DistrictContent;
-use App\Models\PointOfInterest;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -28,6 +29,15 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Les factories restent à plat dans database/factories/ (jamais
+        // sous app/Domain/, cf. CLAUDE.md §2) alors que les modèles vivent
+        // sous App\Domain\{Contexte}\Models\ : le résolveur par défaut de
+        // Laravel ne sait mapper que App\Models\X vers Database\Factories\X,
+        // il faut donc l'étendre pour ignorer le sous-namespace du modèle.
+        Factory::guessFactoryNamesUsing(
+            fn (string $modelName): string => 'Database\\Factories\\'.class_basename($modelName).'Factory'
+        );
+
         // super_admin contourne toute vérification de permission — voir
         // docs/adr/0002-access-control.md. Aucune permission ne lui est
         // assignée en base pour éviter toute désynchronisation à l'ajout
