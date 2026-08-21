@@ -47,6 +47,17 @@ return [
             'report' => false,
         ],
 
+        // Destination dédiée des sauvegardes (spatie/laravel-backup), séparée
+        // de `local`/`public` : ces deux disques sont eux-mêmes sauvegardés
+        // (voir config/backup.php), les y stocker aussi créerait une
+        // inclusion récursive des archives à chaque nouvelle sauvegarde.
+        'backups' => [
+            'driver' => 'local',
+            'root' => storage_path('app/backups'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
