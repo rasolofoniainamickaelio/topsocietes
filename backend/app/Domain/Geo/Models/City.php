@@ -18,6 +18,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
+/**
+ * `latitude`/`longitude` (colonnes générées) et `location`/`boundary`
+ * (geography brutes) sont ajoutées par `DB::statement()` dans la
+ * migration, hors de portée du scanner de Blueprint de Larastan.
+ *
+ * @property-read string|null $latitude
+ * @property-read string|null $longitude
+ * @property-read string|null $location
+ * @property-read string|null $boundary
+ */
 class City extends Model
 {
     /** @use HasFactory<CityFactory> */

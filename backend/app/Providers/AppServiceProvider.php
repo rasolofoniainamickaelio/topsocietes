@@ -44,6 +44,11 @@ class AppServiceProvider extends ServiceProvider
         // d'une nouvelle permission.
         Gate::before(fn (User $user): ?true => $user->hasRole(RoleName::SuperAdmin->value) ? true : null);
 
+        // Doc OpenAPI interactive (Scramble) : jamais en production, ouverte
+        // sur tout autre environnement (local déjà autorisé nativement par
+        // RestrictedDocsAccess, staging/autres via ce Gate).
+        Gate::define('viewApiDocs', fn (): bool => ! app()->environment('production'));
+
         // Alias courts plutôt que les FQCN dans les colonnes polymorphiques
         // (source_documents.subject_type, facts.subject_type,
         // content_source_links.content_type) : ne pas coupler le contenu de

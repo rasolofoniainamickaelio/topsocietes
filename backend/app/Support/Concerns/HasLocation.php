@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Builder;
  * Pour les modèles portant une colonne `location geography(Point,4326)`.
  * Toute distance affichée doit venir de PostGIS (`ST_Distance`), jamais
  * calculée applicativement ni par un LLM (CLAUDE.md §6).
+ *
+ * @property-read int|null $distance_m Présent uniquement après `orderByDistanceFrom()` (alias par défaut).
  */
 trait HasLocation
 {

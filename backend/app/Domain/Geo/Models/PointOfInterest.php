@@ -26,6 +26,8 @@ class PointOfInterest extends Model
     use HasLocation;
     use SoftDeletes;
 
+    protected $table = 'points_of_interest';
+
     protected $fillable = [
         'country_id',
         'city_id',

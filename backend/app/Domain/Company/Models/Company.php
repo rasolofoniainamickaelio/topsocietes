@@ -9,6 +9,7 @@ use App\Domain\Billing\Models\Subscription;
 use App\Domain\Company\Enums\CompanyContentStatus;
 use App\Domain\Company\Enums\CompanyStatus;
 use App\Domain\Company\Enums\GeocodingStatus;
+use App\Domain\Company\Observers\CompanyObserver;
 use App\Domain\Content\Models\Fact;
 use App\Domain\Geo\Models\AdminDivision;
 use App\Domain\Geo\Models\City;
@@ -20,6 +21,7 @@ use App\Domain\Taxonomy\Models\Activity;
 use App\Support\Concerns\HasLocation;
 use App\Support\Concerns\HasPublicId;
 use Database\Factories\CompanyFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -27,6 +29,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * `latitude`/`longitude` (colonnes générées) et `location` (geography brute)
+ * sont ajoutées par `DB::statement()` dans la migration, hors de portée du
+ * scanner de Blueprint de Larastan — déclarées ici pour qu'il les connaisse.
+ *
+ * @property-read string|null $latitude
+ * @property-read string|null $longitude
+ * @property-read string|null $location
+ * @property CompanyContentStatus $content_status
+ */
+#[ObservedBy(CompanyObserver::class)]
 class Company extends Model
 {
     /** @use HasFactory<CompanyFactory> */
@@ -54,6 +67,7 @@ class Company extends Model
         'city_id',
         'district_id',
         'admin_division_id',
+        'location',
         'geocoding_status',
         'content_status',
         'is_indexable',
