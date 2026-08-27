@@ -3,15 +3,44 @@
 declare(strict_types=1);
 
 use App\Http\Api\V1\Controllers\ActivityIndexController;
+use App\Http\Api\V1\Controllers\AdSlotCampaignsController;
+use App\Http\Api\V1\Controllers\Auth\LoginController;
+use App\Http\Api\V1\Controllers\Auth\LogoutController;
+use App\Http\Api\V1\Controllers\Auth\MeController;
+use App\Http\Api\V1\Controllers\Auth\RegisterController;
 use App\Http\Api\V1\Controllers\CityIndexController;
 use App\Http\Api\V1\Controllers\CityShowController;
+use App\Http\Api\V1\Controllers\CompanyCheckoutController;
+use App\Http\Api\V1\Controllers\CompanyClaimStoreController;
 use App\Http\Api\V1\Controllers\CompanyIndexController;
 use App\Http\Api\V1\Controllers\CompanyShowController;
 use App\Http\Api\V1\Controllers\CountryController;
 use App\Http\Api\V1\Controllers\DisputeReportStoreController;
+use App\Http\Api\V1\Controllers\PlanIndexController;
+use App\Http\Api\V1\Controllers\ResolvePathController;
 use App\Http\Api\V1\Controllers\SectorIndexController;
+use App\Http\Api\V1\Controllers\ServiceLinkIndexController;
+use App\Http\Api\V1\Controllers\StripeWebhookController;
 use App\Http\Middleware\ResolveCountry;
 use Illuminate\Support\Facades\Route;
+
+/**
+ * Hors préfixe `v1/{country}` : un compte utilisateur n'est rattaché à
+ * aucun pays. Sanctum SPA (cookies de session) — voir
+ * docs/adr/0004-billing-auth.md.
+ */
+Route::prefix('v1/auth')->group(function (): void {
+    Route::post('/register', RegisterController::class)->middleware('throttle:5,1');
+    Route::post('/login', LoginController::class)->middleware('throttle:5,1');
+    Route::post('/logout', LogoutController::class)->middleware('auth:sanctum');
+    Route::get('/me', MeController::class)->middleware('auth:sanctum');
+});
+
+/**
+ * Signature vérifiée dans le contrôleur, jamais par une session/CSRF — voir
+ * `bootstrap/app.php` (exception CSRF sur ce chemin).
+ */
+Route::post('/webhooks/stripe', StripeWebhookController::class);
 
 /**
  * `{country}` = `countries.subdomain` (ex. "fr"), résolu explicitement en
@@ -28,4 +57,10 @@ Route::prefix('v1/{country}')->middleware(ResolveCountry::class)->group(function
     Route::get('/companies', CompanyIndexController::class);
     Route::get('/companies/{slug}', CompanyShowController::class);
     Route::post('/companies/{slug}/disputes', DisputeReportStoreController::class)->middleware('throttle:5,1');
+    Route::get('/ad-slots/{code}/campaigns', AdSlotCampaignsController::class);
+    Route::get('/service-links', ServiceLinkIndexController::class);
+    Route::get('/resolve', ResolvePathController::class);
+    Route::get('/plans', PlanIndexController::class);
+    Route::post('/companies/{slug}/claims', CompanyClaimStoreController::class)->middleware('auth:sanctum');
+    Route::post('/companies/{slug}/checkout', CompanyCheckoutController::class)->middleware('auth:sanctum');
 });

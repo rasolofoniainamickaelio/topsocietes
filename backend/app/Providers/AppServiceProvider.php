@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Billing\Contracts\CheckoutGatewayInterface;
+use App\Domain\Billing\Services\StripeCheckoutGateway;
 use App\Domain\Company\Models\Company;
 use App\Domain\Content\Models\ActivityContent;
 use App\Domain\Content\Models\CityActivityContent;
@@ -19,12 +21,19 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Stripe\StripeClient;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // Isole le Domain du prestataire de paiement (même patron que
+        // SearchEngineInterface, ADR 0001) — voir docs/adr/0004-billing-auth.md.
+        $this->app->singleton(StripeClient::class, fn (): StripeClient => new StripeClient(
+            (string) config('services.stripe.secret'),
+        ));
+
+        $this->app->bind(CheckoutGatewayInterface::class, StripeCheckoutGateway::class);
     }
 
     public function boot(): void

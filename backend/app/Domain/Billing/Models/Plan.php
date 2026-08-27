@@ -12,6 +12,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property BillingPeriod $billing_period
+ */
 class Plan extends Model
 {
     /** @use HasFactory<PlanFactory> */

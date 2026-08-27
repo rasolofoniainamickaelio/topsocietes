@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * éviter toute collision avec `Illuminate\Support\Facades\Route` /
  * `Illuminate\Routing\Route`, quasi certaine d'être importée dans les
  * mêmes contrôleurs qui manipuleront ce modèle.
+ *
+ * @property PageType $page_type
  */
 class PageRoute extends Model
 {
