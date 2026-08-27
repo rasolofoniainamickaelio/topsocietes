@@ -15,6 +15,11 @@ class DisputeReportPolicy
         return $user->can(PermissionName::DisputesView->value);
     }
 
+    public function create(User $user): bool
+    {
+        return $user->can(PermissionName::DisputesReview->value);
+    }
+
     public function view(User $user, DisputeReport $dispute): bool
     {
         return $user->can(PermissionName::DisputesView->value);

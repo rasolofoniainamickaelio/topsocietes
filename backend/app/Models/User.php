@@ -3,13 +3,16 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\RoleName;
 use Database\Factories\UserFactory;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
@@ -46,5 +49,20 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * `company_owner` est un rôle front (espace de gestion de sa propre
+     * fiche, hors périmètre actuel), jamais admis dans le back-office
+     * Filament — voir docs/adr/0002-access-control.md.
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->hasAnyRole([
+            RoleName::SuperAdmin->value,
+            RoleName::Admin->value,
+            RoleName::Moderator->value,
+            RoleName::ContentManager->value,
+        ]);
     }
 }

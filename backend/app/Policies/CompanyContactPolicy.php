@@ -10,6 +10,32 @@ use App\Models\User;
 
 class CompanyContactPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return $user->can(PermissionName::ContactsManage->value);
+    }
+
+    public function view(User $user, CompanyContact $contact): bool
+    {
+        return $user->can(PermissionName::ContactsManage->value);
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->can(PermissionName::ContactsManage->value);
+    }
+
+    public function update(User $user, CompanyContact $contact): bool
+    {
+        return $user->can(PermissionName::ContactsManage->value);
+    }
+
+    public function delete(User $user, CompanyContact $contact): bool
+    {
+        return $user->can(PermissionName::ContactsManage->value);
+    }
+
+    /** Alias explicite des méthodes standard ci-dessus, pour un appel `$user->can('manage', $contact)` plus lisible hors contexte CRUD. */
     public function manage(User $user, CompanyContact $contact): bool
     {
         return $user->can(PermissionName::ContactsManage->value);

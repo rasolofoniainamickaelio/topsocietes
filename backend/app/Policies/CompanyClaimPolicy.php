@@ -31,4 +31,15 @@ class CompanyClaimPolicy
     {
         return $user->can(PermissionName::ClaimsReview->value);
     }
+
+    /** Alias standard attendu par Filament pour la page d'édition. */
+    public function update(User $user, CompanyClaim $claim): bool
+    {
+        return $this->review($user, $claim);
+    }
+
+    public function delete(User $user, CompanyClaim $claim): bool
+    {
+        return $user->can(PermissionName::ClaimsReview->value);
+    }
 }

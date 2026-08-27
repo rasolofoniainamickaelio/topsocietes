@@ -21,6 +21,11 @@ class CompanyPolicy
         return $user->can(PermissionName::CompaniesView->value);
     }
 
+    public function create(User $user): bool
+    {
+        return $user->can(PermissionName::CompaniesManage->value);
+    }
+
     /**
      * Le staff avec `companies.manage`, ou le représentant d'une entreprise
      * dont la revendication a été approuvée — voir

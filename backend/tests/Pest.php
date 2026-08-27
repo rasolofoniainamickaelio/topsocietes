@@ -8,3 +8,4 @@ uses(RefreshDatabase::class)->in('Feature/Database');
 uses(RefreshDatabase::class)->in('Feature/Api');
 uses(RefreshDatabase::class)->in('Feature/Auth');
 uses(RefreshDatabase::class)->in('Feature/Geo');
+uses(RefreshDatabase::class)->in('Feature/Filament');

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Company\Models;
 
 use App\Domain\Ai\Models\AiGenerationJob;
+use App\Domain\Billing\Models\ContactVisibilityEvent;
 use App\Domain\Billing\Models\Subscription;
 use App\Domain\Company\Enums\CompanyContentStatus;
 use App\Domain\Company\Enums\CompanyStatus;
@@ -185,5 +186,11 @@ class Company extends Model
     public function disputeReports(): HasMany
     {
         return $this->hasMany(DisputeReport::class);
+    }
+
+    /** @return HasMany<ContactVisibilityEvent, $this> */
+    public function contactVisibilityEvents(): HasMany
+    {
+        return $this->hasMany(ContactVisibilityEvent::class);
     }
 }
