@@ -57,6 +57,7 @@ class ImportBatchResource extends Resource
             TextEntry::make('filename'),
             TextEntry::make('format')->badge(),
             TextEntry::make('status')->badge(),
+            TextEntry::make('triggeredBy.name')->label('Lancé par')->placeholder('CLI / système'),
             TextEntry::make('total_rows'),
             TextEntry::make('processed_rows'),
             TextEntry::make('created_count'),

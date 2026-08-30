@@ -8,12 +8,19 @@ use App\Domain\Company\Models\Company;
 use App\Domain\Geo\Models\Country;
 use App\Domain\Import\Enums\ImportFormat;
 use App\Domain\Import\Enums\ImportStatus;
+use App\Models\User;
 use Database\Factories\ImportBatchFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property ImportFormat $format
+ * @property ImportStatus $status
+ * @property array<string, mixed>|null $checkpoint
+ * @property array<string, mixed>|null $options
+ */
 class ImportBatch extends Model
 {
     /** @use HasFactory<ImportBatchFactory> */
@@ -24,6 +31,7 @@ class ImportBatch extends Model
         'filename',
         'format',
         'mapping_id',
+        'triggered_by',
         'total_rows',
         'processed_rows',
         'created_count',
@@ -65,6 +73,12 @@ class ImportBatch extends Model
     public function mapping(): BelongsTo
     {
         return $this->belongsTo(ImportMapping::class, 'mapping_id');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function triggeredBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'triggered_by');
     }
 
     /** @return HasMany<ImportError, $this> */
