@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Company\Enums\GeocodingStatus;
 use App\Domain\Company\Models\Company;
+use App\Domain\Geo\Models\AdminDivision;
 use App\Domain\Geo\Models\City;
 use App\Domain\Geo\Models\Country;
 use App\Domain\Import\Actions\ProcessImportChunkAction;
@@ -34,7 +35,11 @@ beforeEach(function (): void {
     Storage::fake('local');
 
     $this->country = Country::factory()->create(['subdomain' => 'fr']);
-    $this->city = City::factory()->for($this->country)->create(['postal_codes' => ['75001']]);
+    $this->adminDivision = AdminDivision::factory()->for($this->country)->create();
+    $this->city = City::factory()->for($this->country)->create([
+        'postal_codes' => ['75001'],
+        'admin_division_id' => $this->adminDivision->id,
+    ]);
     $this->mapping = ImportMapping::factory()->for($this->country)->create([
         'column_map' => [
             'siren' => 'national_id',
@@ -63,6 +68,7 @@ it('creates companies, resolves the city by postal code, and logs a missing-fiel
 
     $company = Company::query()->where('national_id', '111111111')->firstOrFail();
     expect($company->city_id)->toBe($this->city->id)
+        ->and($company->admin_division_id)->toBe($this->adminDivision->id)
         ->and($company->geocoding_status)->toBe(GeocodingStatus::CityLevel);
 
     $error = ImportError::query()->where('batch_id', $batch->id)->firstOrFail();
@@ -93,6 +99,25 @@ it('updates a changed company and skips an unchanged one on re-import', function
         ->and($secondBatch->created_count)->toBe(0);
 
     expect(Company::query()->where('national_id', '222222222')->firstOrFail()->legal_name)->toBe('Acme Group');
+});
+
+it('does not regress an existing city/admin_division when a later import has no resolvable postal code', function (): void {
+    $firstCsv = "siren,denomination,cp\n888888888,Acme SAS,75001\n";
+    $firstBatch = makeBatch($this->country, $this->mapping, $firstCsv);
+    app(ProcessImportChunkAction::class)->execute($firstBatch);
+
+    $company = Company::query()->where('national_id', '888888888')->firstOrFail();
+    expect($company->city_id)->toBe($this->city->id);
+
+    // Nouvelle ligne : même entreprise, code postal absent/inconnu cette fois
+    $secondCsv = "siren,denomination,cp\n888888888,Acme SAS Group,99999\n";
+    $secondBatch = makeBatch($this->country, $this->mapping, $secondCsv);
+    app(ProcessImportChunkAction::class)->execute($secondBatch);
+
+    $company->refresh();
+    expect($company->legal_name)->toBe('Acme SAS Group')
+        ->and($company->city_id)->toBe($this->city->id)
+        ->and($company->admin_division_id)->toBe($this->adminDivision->id);
 });
 
 it('advances the checkpoint across multiple chunks and resumes correctly', function (): void {

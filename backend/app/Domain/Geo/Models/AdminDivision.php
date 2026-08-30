@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Geo\Models;
 
+use App\Domain\Content\Models\AdminDivisionContent;
 use Database\Factories\AdminDivisionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -60,5 +61,11 @@ class AdminDivision extends Model
     public function cities(): HasMany
     {
         return $this->hasMany(City::class);
+    }
+
+    /** @return HasMany<AdminDivisionContent, $this> */
+    public function contents(): HasMany
+    {
+        return $this->hasMany(AdminDivisionContent::class);
     }
 }

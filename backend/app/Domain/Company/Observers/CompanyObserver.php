@@ -19,6 +19,23 @@ use App\Domain\Geo\Jobs\ResolveCompanyDistrictJob;
  */
 class CompanyObserver
 {
+    /**
+     * `created` ne déclenche jamais `isDirty()` côté `updated` (c'est un
+     * event Eloquent distinct) : sans ce handler, une entreprise créée
+     * avec déjà une ville/position (import, Phase 03) n'aurait jamais son
+     * quartier résolu tant qu'elle ne subit pas une mise à jour ultérieure.
+     */
+    public function created(Company $company): void
+    {
+        // `location` est une colonne geography brute : non relue en mémoire
+        // après un INSERT. `city_id` seul suffit ici comme filtre — c'est
+        // `ResolveCompanyDistrictAction` qui revérifie précisément (via un
+        // `fresh()`) avant tout traitement réel.
+        if ($company->city_id !== null) {
+            ResolveCompanyDistrictJob::dispatch($company);
+        }
+    }
+
     public function updated(Company $company): void
     {
         if ($company->isDirty(['location', 'city_id'])) {

@@ -1,0 +1,35 @@
+/**
+ * Système de design — CLAUDE.md §5. Ne pas modifier ces valeurs sans
+ * mettre à jour la documentation correspondante : c'est la source de
+ * vérité unique consommée par tous les blocs.
+ */
+:root {
+  /* Neutres */
+  --ink: #101418;
+  --ink-muted: #5a646f;
+  --paper: #ffffff;
+  --surface: #f4f6f8;
+  --border: #e1e5ea;
+
+  /* Marque */
+  --brand: #143a5a;
+  --brand-ink: #0c2437;
+  --signal: #f2b705;
+
+  /* Thématiques de blocs */
+  --t-company: #143a5a;
+  --t-contact: #0f766e;
+  --t-nearby: #6d28d9;
+  --t-district: #b45309;
+  --t-history: #8c5a2b;
+  --t-nature: #2f7a3e;
+  --t-leisure: #c2410c;
+  --t-specialty: #a21c4b;
+  --t-stats: #334155;
+  --t-sector: #1e5aa8;
+
+  /* Rayons et espacement */
+  --radius-card: 20px;
+  --radius-chip: 8px;
+  --space-block: 24px;
+}

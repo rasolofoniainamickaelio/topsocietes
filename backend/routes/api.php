@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Http\Api\V1\Controllers\ActivityIndexController;
+use App\Http\Api\V1\Controllers\ActivityShowController;
+use App\Http\Api\V1\Controllers\AdminDivisionIndexController;
+use App\Http\Api\V1\Controllers\AdminDivisionShowController;
 use App\Http\Api\V1\Controllers\AdSlotCampaignsController;
 use App\Http\Api\V1\Controllers\Auth\LoginController;
 use App\Http\Api\V1\Controllers\Auth\LogoutController;
@@ -16,9 +19,11 @@ use App\Http\Api\V1\Controllers\CompanyIndexController;
 use App\Http\Api\V1\Controllers\CompanyShowController;
 use App\Http\Api\V1\Controllers\CountryController;
 use App\Http\Api\V1\Controllers\DisputeReportStoreController;
+use App\Http\Api\V1\Controllers\DistrictShowController;
 use App\Http\Api\V1\Controllers\PlanIndexController;
 use App\Http\Api\V1\Controllers\ResolvePathController;
 use App\Http\Api\V1\Controllers\SectorIndexController;
+use App\Http\Api\V1\Controllers\SectorShowController;
 use App\Http\Api\V1\Controllers\ServiceLinkIndexController;
 use App\Http\Api\V1\Controllers\StripeWebhookController;
 use App\Http\Middleware\ResolveCountry;
@@ -53,7 +58,12 @@ Route::prefix('v1/{country}')->middleware(ResolveCountry::class)->group(function
     Route::get('/cities', CityIndexController::class);
     Route::get('/cities/{slug}', CityShowController::class);
     Route::get('/activities', ActivityIndexController::class);
+    Route::get('/activities/{slug}', ActivityShowController::class);
     Route::get('/sectors', SectorIndexController::class);
+    Route::get('/sectors/{slug}', SectorShowController::class);
+    Route::get('/districts/{slug}', DistrictShowController::class);
+    Route::get('/admin-divisions', AdminDivisionIndexController::class);
+    Route::get('/admin-divisions/{slug}', AdminDivisionShowController::class);
     Route::get('/companies', CompanyIndexController::class);
     Route::get('/companies/{slug}', CompanyShowController::class);
     Route::post('/companies/{slug}/disputes', DisputeReportStoreController::class)->middleware('throttle:5,1');

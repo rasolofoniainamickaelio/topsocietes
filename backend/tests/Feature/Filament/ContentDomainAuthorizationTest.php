@@ -21,6 +21,7 @@ it('lets content_manager access the content resources', function (): void {
     $this->actingAs($contentManager)->get('/admin/district-contents')->assertSuccessful();
     $this->actingAs($contentManager)->get('/admin/activity-contents')->assertSuccessful();
     $this->actingAs($contentManager)->get('/admin/city-activity-contents')->assertSuccessful();
+    $this->actingAs($contentManager)->get('/admin/admin-division-contents')->assertSuccessful();
     $this->actingAs($contentManager)->get('/admin/sources')->assertSuccessful();
     $this->actingAs($contentManager)->get('/admin/source-documents')->assertSuccessful();
 });

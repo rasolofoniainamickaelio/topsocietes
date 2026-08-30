@@ -10,3 +10,4 @@ uses(RefreshDatabase::class)->in('Feature/Auth');
 uses(RefreshDatabase::class)->in('Feature/Geo');
 uses(RefreshDatabase::class)->in('Feature/Filament');
 uses(RefreshDatabase::class)->in('Feature/Import');
+uses(RefreshDatabase::class)->in('Feature/Content');

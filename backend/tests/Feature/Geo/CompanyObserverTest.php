@@ -6,8 +6,28 @@ use App\Domain\Company\Enums\CompanyContentStatus;
 use App\Domain\Company\Models\Company;
 use App\Domain\Geo\Jobs\ComputeCompanyNearbyPoisJob;
 use App\Domain\Geo\Jobs\ResolveCompanyDistrictJob;
+use App\Domain\Geo\Models\City;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+
+it('dispatches district resolution when a company is created with a city already resolved', function (): void {
+    Queue::fake();
+    $city = City::factory()->create();
+
+    Company::factory()->create([
+        'city_id' => $city->id,
+        'location' => DB::raw('ST_SetSRID(ST_MakePoint(2.35, 48.87), 4326)::geography'),
+    ]);
+
+    Queue::assertPushed(ResolveCompanyDistrictJob::class);
+});
+
+it('dispatches nothing on creation when no city is resolved', function (): void {
+    Queue::fake();
+    Company::factory()->create();
+
+    Queue::assertNotPushed(ResolveCompanyDistrictJob::class);
+});
 
 it('dispatches district resolution when location changes', function (): void {
     Queue::fake();

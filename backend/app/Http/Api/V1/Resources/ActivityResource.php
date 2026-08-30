@@ -24,6 +24,11 @@ class ActivityResource extends JsonResource
             'label' => $this->public_label,
             'level' => $this->level,
             'companies_count' => $this->companies_count,
+            'sectors' => $this->whenLoaded('sectors', fn () => $this->sectors->map(fn ($sector) => [
+                'slug' => $sector->slug,
+                'name' => $sector->name,
+            ])->all()),
+            'blocks' => ContentBlockResource::collection($this->whenLoaded('contents')),
         ];
     }
 }

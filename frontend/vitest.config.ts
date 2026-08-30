@@ -7,6 +7,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    setupFiles: ["./vitest.setup.ts"],
     // "forks" (le pool par défaut) échoue à démarrer ses workers sur cette
     // machine (probablement l'antivirus/EDR bloquant le spawn de process
     // enfants — même symptôme que l'échec d'installation MSI de Memurai).

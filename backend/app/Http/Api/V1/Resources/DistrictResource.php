@@ -24,6 +24,7 @@ class DistrictResource extends JsonResource
             'population' => $this->population,
             'companies_count' => $this->companies_count,
             'has_local_content' => $this->has_local_content,
+            'blocks' => ContentBlockResource::collection($this->whenLoaded('contents')),
         ];
     }
 }

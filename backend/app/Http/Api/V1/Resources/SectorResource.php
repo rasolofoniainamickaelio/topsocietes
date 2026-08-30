@@ -22,6 +22,7 @@ class SectorResource extends JsonResource
             'slug' => $this->slug,
             'name' => $this->name,
             'companies_count' => $this->companies_count,
+            'blocks' => ContentBlockResource::collection($this->whenLoaded('contents')),
         ];
     }
 }

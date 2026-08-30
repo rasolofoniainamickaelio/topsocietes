@@ -13,6 +13,7 @@ enum ContentSectionScope: string
 {
     case City = 'city';
     case District = 'district';
+    case AdminDivision = 'admin_division';
     case Activity = 'activity';
     case CityActivity = 'city_activity';
     case Company = 'company';

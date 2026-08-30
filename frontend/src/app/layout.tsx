@@ -1,16 +1,28 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import { getCurrentCountry } from "@/lib/country/get-current-country";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Display : titres de blocs, très visibles (CLAUDE.md §5).
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
+  weight: ["600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Texte courant : prose, listes, FAQ (CLAUDE.md §5).
+const publicSans = Public_Sans({
+  variable: "--font-public-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+
+// Données : identifiants, codes, dates, distances — le "fil des faits"
+// (CLAUDE.md §5).
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: "--font-ibm-plex-mono",
+  subsets: ["latin"],
+  weight: ["500"],
 });
 
 export const metadata: Metadata = {
@@ -32,7 +44,7 @@ export default async function RootLayout({
   return (
     <html lang={country.default_locale.replace("_", "-")}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${archivo.variable} ${publicSans.variable} ${ibmPlexMono.variable} antialiased`}
       >
         {children}
       </body>

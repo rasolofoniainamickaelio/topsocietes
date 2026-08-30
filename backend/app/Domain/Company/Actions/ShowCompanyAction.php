@@ -19,7 +19,7 @@ class ShowCompanyAction
             ->with([
                 'city',
                 'district',
-                'activity',
+                'activity.sectors',
                 'mainEstablishment',
                 'nearbyPois.poi',
                 // Jamais démasqué à la demande : `visibility` est déjà le

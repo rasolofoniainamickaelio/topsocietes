@@ -138,6 +138,10 @@ class ProcessImportChunkAction
             'activity_code_raw' => $mapped['activity_code'] ?? null,
             'headcount_range' => $mapped['headcount_range'] ?? null,
             'city_id' => $city?->id,
+            // Rattachement département/province transitif : une commune
+            // porte déjà sa division administrative (Phase 04, "rattachement
+            // automatique au pays/région/département").
+            'admin_division_id' => $city?->admin_division_id,
         ];
 
         $dataHash = $this->hashFields($fields);
@@ -168,13 +172,20 @@ class ProcessImportChunkAction
             return 'skipped';
         }
 
+        // `city_id`/`admin_division_id` restent dans `$fields` pour le hash
+        // (un changement de ville doit se voir), mais ne sont écrits que
+        // lorsque cette ligne résout effectivement une ville : une absence
+        // ponctuelle de code postal exploitable ne doit jamais régresser un
+        // rattachement géo déjà acquis sur la fiche existante.
         $updateFields = [
-            ...$fields,
+            ...array_diff_key($fields, ['city_id' => null, 'admin_division_id' => null]),
             'source_batch_id' => $batch->id,
             'data_hash' => $dataHash,
         ];
 
         if ($city !== null) {
+            $updateFields['city_id'] = $city->id;
+            $updateFields['admin_division_id'] = $city->admin_division_id;
             $updateFields['geocoding_status'] = GeocodingStatus::CityLevel;
             $updateFields['location'] = $this->locationExpression($city);
         }
