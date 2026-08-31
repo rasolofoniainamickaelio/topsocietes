@@ -16,6 +16,8 @@ use App\Domain\Content\Models\DistrictContent;
 use App\Domain\Geo\Models\City;
 use App\Domain\Geo\Models\District;
 use App\Domain\Geo\Models\PointOfInterest;
+use App\Domain\Search\Contracts\SearchEngineInterface;
+use App\Domain\Search\Services\PostgresSearchEngine;
 use App\Domain\Taxonomy\Models\Activity;
 use App\Enums\RoleName;
 use App\Models\User;
@@ -40,6 +42,11 @@ class AppServiceProvider extends ServiceProvider
         // Couche d'abstraction fournisseur IA (Phases 10-11) — changer de
         // fournisseur ne touche que ce binding, jamais le code métier.
         $this->app->bind(AiDriver::class, OpenAiDriver::class);
+
+        // Isole le Domain du moteur de recherche technique (ADR 0001,
+        // Phase 14) — PostgreSQL pour l'instant, un futur Meilisearch ne
+        // changerait que ce binding.
+        $this->app->bind(SearchEngineInterface::class, PostgresSearchEngine::class);
     }
 
     public function boot(): void

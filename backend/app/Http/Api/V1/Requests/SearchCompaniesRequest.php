@@ -1,0 +1,32 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Api\V1\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class SearchCompaniesRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        return [
+            'term' => ['nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'postal_code' => ['nullable', 'string', 'max:20'],
+            'activity' => ['nullable', 'string', 'max:255'],
+            'sector' => ['nullable', 'string', 'max:255'],
+            'admin_division' => ['nullable', 'string', 'max:255'],
+            'cursor' => ['nullable', 'string'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ];
+    }
+}

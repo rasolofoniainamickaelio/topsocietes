@@ -192,3 +192,17 @@ php artisan test                                  # ✅ 18 passed (21 assertions
 ```
 
 Prérequis locaux (Windows) : PostGIS installé via Stack Builder (`bin/StackBuilder.exe`, catégorie *Spatial Extensions*) ; Memurai (compatible Redis, `CACHE_STORE=redis`) installé et démarré comme service — `spatie/laravel-permission` sollicite le cache au boot de l'application, y compris pendant les migrations/seeders.
+
+---
+
+## 8. Recherche (Phase 14)
+
+`App\Domain\Search\Contracts\SearchEngineInterface`, lié à `PostgresSearchEngine` dans `AppServiceProvider::register()` (ADR 0001) — même patron que `CheckoutGatewayInterface`/`AiDriver`. **Meilisearch est explicitement hors périmètre** (CLAUDE.md §9 : accord requis avant tout nouveau service externe ; le tableau de stack ne rend obligatoire que "PostgreSQL FTS derrière `SearchEngineInterface`").
+
+- **Terme numérique** (`^\d+$`) → recherche SIREN exacte/préfixe sur `national_id`, jamais floue.
+- **Terme texte** → `tsvector`/`french_unaccent` (rapide, radical) combiné à un repli `pg_trgm` pour la tolérance aux fautes de frappe — l'équivalent Postgres-only de ce qu'apporterait Meilisearch, classé par `GREATEST(ts_rank_cd(...), similarity(...))`. **Piège pg_trgm** : `gin_companies_name_trgm` n'est utilisable que par l'opérateur `%` (ou `<->`) — un appel de fonction `similarity(a, b) > seuil` en `WHERE` n'est jamais indexable, même si l'index existe (confirmé par `EXPLAIN` : `Seq Scan` forcé même avec `enable_seqscan = off`). Le `WHERE` utilise donc `legal_name % ?`, le seuil étant fixé par `SET pg_trgm.similarity_threshold` en session ; `similarity()` reste utilisé dans le `SELECT` uniquement, pour classer les lignes déjà trouvées.
+- **Filtres combinables** : ville/code postal (slug ville, `? = ANY(postal_codes)` — index GIN dédié posé par cette phase, `cities.postal_codes` n'en avait aucun), activité (slug), secteur (via `activity.sectors`), département/région (`admin_division_id` = la division ou l'un de ses enfants directs — hiérarchie à 2 niveaux, `admin_divisions.path` existe en colonne mais n'est peuplé par aucun code, volontairement pas utilisé).
+- **Pagination keyset** (`cursorPaginate()` natif Laravel, jamais d'OFFSET) : sans terme, tri direct sur `legal_name`/`id`. Avec un terme, le rang de pertinence est un alias de `SELECT` — invalide dans le `WHERE` que le curseur génère pour la page suivante. Contournement via `fromSub()` : la requête classée devient une sous-requête, le rang y devient une vraie colonne de la requête externe, donc utilisable par le curseur.
+- **Réindexation/fallback** : sans second moteur, ces deux préoccupations de la carte Trello sont satisfaites par construction — `search_vector` est une colonne générée **STORED**, toujours à jour à l'écriture ; il n'y a rien vers quoi retomber puisqu'un seul moteur existe.
+
+Tests : `backend/tests/Feature/Search/PostgresSearchEngineTest.php` (filtres isolés/combinés, faute de frappe, SIREN, pagination sur 2 pages sans doublon ni trou — avec et sans terme de recherche).
