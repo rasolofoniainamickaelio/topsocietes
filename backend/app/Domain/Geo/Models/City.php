@@ -48,6 +48,8 @@ class City extends Model
         'companies_count',
         'counts_updated_at',
         'has_local_content',
+        'wikidata_id',
+        'wikipedia_title',
     ];
 
     protected function casts(): array

@@ -34,6 +34,8 @@ class CityFactory extends Factory
             'companies_count' => 0,
             'counts_updated_at' => null,
             'has_local_content' => false,
+            'wikidata_id' => null,
+            'wikipedia_title' => null,
             'location' => DB::raw("ST_SetSRID(ST_MakePoint({$lng}, {$lat}), 4326)::geography"),
         ];
     }

@@ -41,4 +41,22 @@ return [
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
 
+    /*
+    | Connecteurs de collecte de sources publiques (Phase 09). Wikimedia
+    | (Wikipedia/Wikidata) et Nominatim exigent un User-Agent descriptif
+    | identifiant l'application et un contact — pas de clé requise.
+    */
+    'sources' => [
+        'user_agent' => env('SOURCES_USER_AGENT', 'TOPsocietesBot/1.0 (+https://topsocietes.com; contact@topsocietes.com)'),
+        'wikipedia' => [
+            'base_url' => env('WIKIPEDIA_BASE_URL', 'https://fr.wikipedia.org'),
+        ],
+        'wikidata' => [
+            'base_url' => env('WIKIDATA_BASE_URL', 'https://www.wikidata.org'),
+        ],
+        'nominatim' => [
+            'base_url' => env('NOMINATIM_BASE_URL', 'https://nominatim.openstreetmap.org'),
+        ],
+    ],
+
 ];

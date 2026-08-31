@@ -8,7 +8,15 @@ use App\Enums\JobRunStatus;
 use Database\Factories\JobRunFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property JobRunStatus $status
+ * @property Carbon|null $started_at
+ * @property Carbon|null $finished_at
+ * @property array<string, mixed>|null $payload
+ * @property array<string, mixed>|null $output
+ */
 class JobRun extends Model
 {
     /** @use HasFactory<JobRunFactory> */

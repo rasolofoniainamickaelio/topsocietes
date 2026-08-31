@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             CountrySeeder::class,
             NafNomenclatureSeeder::class,
             ContentSectionSeeder::class,
+            SourceSeeder::class,
             PlanSeeder::class,
             AdSlotSeeder::class,
         ]);

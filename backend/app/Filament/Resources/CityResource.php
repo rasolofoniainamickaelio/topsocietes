@@ -61,6 +61,8 @@ class CityResource extends Resource
             TextInput::make('area_km2')->numeric(),
             TextInput::make('altitude')->numeric(),
             Toggle::make('has_local_content'),
+            TextInput::make('wikidata_id')->label('Identifiant Wikidata')->maxLength(255)->helperText('Ex. Q456 — laisser vide pour ne pas collecter depuis Wikidata'),
+            TextInput::make('wikipedia_title')->label('Titre Wikipedia')->maxLength(255)->helperText('Titre exact de la page — laisser vide pour ne pas collecter depuis Wikipedia'),
         ]);
     }
 
