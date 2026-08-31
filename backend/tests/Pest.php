@@ -11,3 +11,4 @@ uses(RefreshDatabase::class)->in('Feature/Geo');
 uses(RefreshDatabase::class)->in('Feature/Filament');
 uses(RefreshDatabase::class)->in('Feature/Import');
 uses(RefreshDatabase::class)->in('Feature/Content');
+uses(RefreshDatabase::class)->in('Feature/Ai');

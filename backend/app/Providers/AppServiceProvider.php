@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Ai\Contracts\AiDriver;
+use App\Domain\Ai\Drivers\OpenAiDriver;
 use App\Domain\Billing\Contracts\CheckoutGatewayInterface;
 use App\Domain\Billing\Services\StripeCheckoutGateway;
 use App\Domain\Company\Models\Company;
@@ -34,6 +36,10 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->bind(CheckoutGatewayInterface::class, StripeCheckoutGateway::class);
+
+        // Couche d'abstraction fournisseur IA (Phases 10-11) — changer de
+        // fournisseur ne touche que ce binding, jamais le code métier.
+        $this->app->bind(AiDriver::class, OpenAiDriver::class);
     }
 
     public function boot(): void

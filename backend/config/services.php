@@ -59,4 +59,24 @@ return [
         ],
     ],
 
+    /*
+    | Pipeline de génération IA (Phases 10-11). `provider`/`api_key`
+    | existent déjà dans .env — `model`/`base_url` complétés ici avec des
+    | valeurs par défaut raisonnables.
+    */
+    'ai' => [
+        'provider' => env('AI_PROVIDER', 'openai_batch'),
+        'api_key' => env('AI_API_KEY'),
+        'model' => env('AI_MODEL', 'gpt-4o-mini'),
+        'base_url' => env('AI_BASE_URL', 'https://api.openai.com/v1'),
+        // Tarifs approximatifs (cents pour 1000 tokens) pour gpt-4o-mini,
+        // uniquement pour donner un ordre de grandeur au coût journalisé
+        // (`ai_generation_jobs.cost_cents`) — à vérifier/ajuster contre la
+        // grille tarifaire réelle du fournisseur avant tout usage en volume.
+        'pricing_cents_per_1k' => [
+            'input' => (float) env('AI_PRICE_INPUT_CENTS_PER_1K', 0.0015),
+            'output' => (float) env('AI_PRICE_OUTPUT_CENTS_PER_1K', 0.006),
+        ],
+    ],
+
 ];

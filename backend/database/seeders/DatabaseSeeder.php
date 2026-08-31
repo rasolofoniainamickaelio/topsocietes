@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             NafNomenclatureSeeder::class,
             ContentSectionSeeder::class,
             SourceSeeder::class,
+            AiPromptSeeder::class,
             PlanSeeder::class,
             AdSlotSeeder::class,
         ]);

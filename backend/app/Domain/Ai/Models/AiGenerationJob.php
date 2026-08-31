@@ -12,11 +12,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Carbon;
 
 /**
  * `target` : le sujet pour lequel du contenu est généré (city, district,
  * activity, company — jamais poi, qui n'a pas de table de contenu propre).
  * Exécuté en batch uniquement, jamais au chargement d'une page.
+ *
+ * @property GenerationStatus $status
+ * @property AiProvider $provider
+ * @property Carbon $scheduled_at
+ * @property Carbon|null $started_at
+ * @property Carbon|null $finished_at
  */
 class AiGenerationJob extends Model
 {
