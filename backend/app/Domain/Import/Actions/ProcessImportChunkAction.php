@@ -17,6 +17,7 @@ use App\Domain\Import\Exceptions\MissingRequiredFieldException;
 use App\Domain\Import\Models\ImportBatch;
 use App\Domain\Import\Models\ImportError;
 use App\Domain\Import\Models\ImportMapping;
+use App\Domain\Import\Support\MoroccoCategoryNormalizer;
 use App\Domain\Import\Support\RowTransformers;
 use App\Domain\Taxonomy\Models\Activity;
 use BackedEnum;
@@ -122,8 +123,8 @@ class ProcessImportChunkAction
             throw new MissingRequiredFieldException('Champ(s) requis manquant(s) : '.implode(', ', $missing));
         }
 
-        $city = $this->resolveCity($country->id, $mapped['postal_code'] ?? null);
-        $activity = $this->resolveActivity($country, $mapped['activity_code'] ?? null);
+        $city = $this->resolveCity($country, $mapped);
+        $activity = $this->resolveActivity($country, $mapped);
         $status = CompanyStatus::tryFrom(mb_strtolower((string) ($mapped['status'] ?? ''))) ?? CompanyStatus::Unknown;
 
         $fields = [
@@ -209,11 +210,25 @@ class ProcessImportChunkAction
         $mapped = [];
 
         foreach ($columnMap as $sourceColumn => $targetField) {
+            $transformerName = $transformerNames[$targetField] ?? null;
+
+            // Toute colonne source préfixée `__row` (ex. `__row_national_id__`,
+            // `__row_city_slug__` — un préfixe distinct par champ cible, un
+            // simple `array_map` ne pouvant pas porter deux clés `__row__`
+            // identiques) : le champ cible est dérivé de plusieurs colonnes à
+            // la fois, pas d'une colonne source unique — voir
+            // `RowTransformers::applyRow()`.
+            if (str_starts_with($sourceColumn, '__row')) {
+                $mapped[$targetField] = $transformerName !== null
+                    ? $this->transformers->applyRow($transformerName, $rawRow)
+                    : null;
+
+                continue;
+            }
+
             $value = $rawRow[$sourceColumn] ?? null;
             $value = is_string($value) ? trim($value) : $value;
             $value = $value === '' ? null : $value;
-
-            $transformerName = $transformerNames[$targetField] ?? null;
 
             if ($transformerName !== null && $value !== null) {
                 $value = $this->transformers->apply($transformerName, (string) $value);
@@ -225,21 +240,62 @@ class ProcessImportChunkAction
         return $mapped;
     }
 
-    private function resolveCity(int $countryId, ?string $postalCode): ?City
+    /**
+     * @param  array<string, mixed>  $mapped
+     */
+    private function resolveCity(Country $country, array $mapped): ?City
     {
+        // Piloté par `countries.settings` (CLAUDE.md §6.6) : jamais de
+        // branchement sur le code pays ici. Par défaut, résolution par code
+        // postal exact (`? = ANY(postal_codes)`) ; le Maroc n'a pas de
+        // colonne code postal exploitable dans son fichier source (voir
+        // `MoroccoAddressResolver`) et résout par slug de ville à la place.
+        $strategy = $country->settings['city_resolution'] ?? 'postal_code';
+
+        if ($strategy === 'slug') {
+            $slug = $mapped['city_slug'] ?? null;
+
+            if (blank($slug)) {
+                return null;
+            }
+
+            return City::query()->where('country_id', $country->id)->where('slug', $slug)->first();
+        }
+
+        $postalCode = $mapped['postal_code'] ?? null;
+
         if (blank($postalCode)) {
             return null;
         }
 
         return City::query()
-            ->where('country_id', $countryId)
+            ->where('country_id', $country->id)
             ->whereRaw('? = ANY(postal_codes)', [$postalCode])
             ->first();
     }
 
-    private function resolveActivity(Country $country, ?string $code): ?Activity
+    /**
+     * @param  array<string, mixed>  $mapped
+     */
+    private function resolveActivity(Country $country, array $mapped): ?Activity
     {
-        if (blank($code) || blank($country->activity_nomenclature_code)) {
+        if (blank($country->activity_nomenclature_code)) {
+            return null;
+        }
+
+        // Piloté par `countries.settings` (CLAUDE.md §6.6), même principe que
+        // `resolveCity()`. Le Maroc n'a pas de nomenclature d'activité
+        // officielle (voir `MoroccoActivitySeeder`) : le code recherché est
+        // recalculé depuis le texte libre de la ligne, avec le même
+        // algorithme que celui qui a servi à seeder la table (cf.
+        // `MoroccoCategoryNormalizer`).
+        $strategy = $country->settings['activity_resolution'] ?? 'nomenclature_code';
+
+        $code = $strategy === 'category_key'
+            ? MoroccoCategoryNormalizer::key((string) ($mapped['activity_category_raw'] ?? ''))
+            : ($mapped['activity_code'] ?? null);
+
+        if (blank($code)) {
             return null;
         }
 

@@ -88,7 +88,12 @@ class CountrySeeder extends Seeder
                 'activity_nomenclature_code' => 'NAM',
                 'url_patterns' => ['company' => '/{city}/{slug}-{public_id}'],
                 'source_config' => ['open_data' => []],
-                'settings' => [],
+                // Pas de code postal ni de nomenclature d'activité officielle
+                // exploitables dans la source utilisée (annuaire scrapé, voir
+                // MoroccoLocationLabels/MoroccoActivitySeeder) : résolution
+                // par slug de ville / clé de catégorie normalisée plutôt que
+                // par le code postal et le code NAM par défaut des autres pays.
+                'settings' => ['city_resolution' => 'slug', 'activity_resolution' => 'category_key'],
             ],
             [
                 'code' => 'DZ',

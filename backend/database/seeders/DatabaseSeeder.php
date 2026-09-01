@@ -14,7 +14,10 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             CountrySeeder::class,
+            MoroccoAdminDivisionSeeder::class,
+            MoroccoCitySeeder::class,
             NafNomenclatureSeeder::class,
+            MoroccoActivitySeeder::class,
             ContentSectionSeeder::class,
             SourceSeeder::class,
             AiPromptSeeder::class,
