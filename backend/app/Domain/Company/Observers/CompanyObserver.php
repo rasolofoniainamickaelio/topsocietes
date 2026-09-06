@@ -7,6 +7,7 @@ namespace App\Domain\Company\Observers;
 use App\Domain\Company\Actions\BuildCompanyPathAction;
 use App\Domain\Company\Enums\CompanyContentStatus;
 use App\Domain\Company\Models\Company;
+use App\Domain\Content\Queries\CompanyPageBlocksQuery;
 use App\Domain\Geo\Jobs\ComputeCompanyNearbyPoisJob;
 use App\Domain\Geo\Jobs\ResolveCompanyDistrictJob;
 use App\Domain\Geo\Models\City;
@@ -71,6 +72,13 @@ class CompanyObserver
         // la prochaine lecture, jamais de recalcul synchrone ici.
         if ($company->isDirty(['legal_name', 'slug', 'activity_id', 'city_id', 'admin_division_id', 'content_status', 'is_indexable'])) {
             Cache::forget(InternalLinkingService::cacheKey($company));
+        }
+
+        // Blocs de contenu territorial (Phase 08/20) : la ville, le
+        // quartier et l'activité déterminent quelles tables de contenu
+        // s'appliquent à cette fiche.
+        if ($company->isDirty(['city_id', 'district_id', 'activity_id'])) {
+            Cache::forget(CompanyPageBlocksQuery::cacheKey($company));
         }
 
         // Slug immuable en principe (CLAUDE.md §6.4), mais éditable en

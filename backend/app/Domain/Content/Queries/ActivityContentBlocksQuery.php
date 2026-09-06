@@ -46,6 +46,34 @@ class ActivityContentBlocksQuery
     }
 
     /**
+     * Même résultat qu'appeler `forSector()` pour chacun des secteurs, en
+     * une seule requête (Phase 20) — une activité peut appartenir à
+     * plusieurs secteurs, jamais une requête par secteur sur une page qui
+     * les affiche tous.
+     *
+     * @param  Collection<int, Sector>  $sectors
+     * @return Collection<int, ActivityContent>
+     */
+    public function forSectors(Collection $sectors, Country $country): Collection
+    {
+        if ($sectors->isEmpty()) {
+            return new Collection;
+        }
+
+        $bySection = ActivityContent::query()
+            ->whereIn('sector_id', $sectors->pluck('id'))
+            ->where('status', ContentStatus::Published)
+            ->where(fn ($query) => $query->whereNull('country_id')->orWhere('country_id', $country->id))
+            ->get()
+            ->groupBy('sector_id')
+            ->map(fn (Collection $rows) => $this->dedupe($rows, $country));
+
+        return $sectors
+            ->map(fn (Sector $sector) => $bySection->get($sector->id, new Collection))
+            ->flatten(1);
+    }
+
+    /**
      * @param  Collection<int, ActivityContent>  $rows
      * @return Collection<int, ActivityContent>
      */
