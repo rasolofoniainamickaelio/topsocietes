@@ -24,6 +24,7 @@ use Illuminate\Support\Carbon;
  *
  * @property GenerationStatus $status
  * @property AiProvider $provider
+ * @property GenerationMode|null $mode
  * @property Carbon $scheduled_at
  * @property Carbon|null $started_at
  * @property Carbon|null $finished_at

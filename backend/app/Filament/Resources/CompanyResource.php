@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Domain\Company\Actions\MergeCompaniesAction;
 use App\Domain\Company\Enums\CompanyContentStatus;
 use App\Domain\Company\Enums\CompanyStatus;
 use App\Domain\Company\Enums\GeocodingStatus;
 use App\Domain\Company\Models\Company;
 use App\Domain\Geo\Queries\UngeocodableCompaniesQuery;
+use App\Enums\PermissionName;
 use App\Filament\Resources\CompanyResource\Pages;
 use App\Filament\Resources\CompanyResource\RelationManagers\ContactVisibilityEventsRelationManager;
 use App\Filament\Resources\CompanyResource\RelationManagers\NearbyPoisRelationManager;
@@ -19,13 +21,16 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Throwable;
 
 class CompanyResource extends Resource
 {
@@ -83,6 +88,35 @@ class CompanyResource extends Resource
                     ->label('À reprendre (géocodage)')
                     ->query(fn (Builder $query): Builder => app(UngeocodableCompaniesQuery::class)->apply($query))
                     ->toggle(),
+            ])
+            ->actions([
+                Action::make('merge')
+                    ->label('Fusionner avec…')
+                    ->icon('heroicon-o-arrow-path-rounded-square')
+                    ->visible(fn (): bool => auth()->user()?->can(PermissionName::CompaniesManage->value) ?? false)
+                    ->form([
+                        Select::make('target_company_id')
+                            ->label('Fiche cible (conservée)')
+                            ->helperText('La fiche courante sera fusionnée dans celle-ci puis archivée. Une redirection permanente sera créée automatiquement.')
+                            ->options(fn (Company $record) => Company::query()
+                                ->where('country_id', $record->country_id)
+                                ->whereKeyNot($record->id)
+                                ->orderBy('legal_name')
+                                ->pluck('legal_name', 'id'))
+                            ->searchable()
+                            ->required(),
+                    ])
+                    ->requiresConfirmation()
+                    ->modalDescription('Établissements, contacts, revendications et abonnements de cette fiche seront transférés vers la fiche cible, puis cette fiche sera archivée (soft-delete) et redirigée définitivement.')
+                    ->action(function (Company $record, array $data, MergeCompaniesAction $action): void {
+                        try {
+                            $target = Company::query()->findOrFail($data['target_company_id']);
+                            $action->execute($record, $target);
+                            Notification::make()->title('Fusion effectuée')->success()->send();
+                        } catch (Throwable $exception) {
+                            Notification::make()->title('Fusion impossible')->body($exception->getMessage())->danger()->send();
+                        }
+                    }),
             ])
             ->defaultSort('legal_name');
     }

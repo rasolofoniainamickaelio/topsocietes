@@ -33,7 +33,7 @@ class ImportBatchResource extends Resource
 
     public static function canCreate(): bool
     {
-        return false;
+        return static::canViewAny();
     }
 
     public static function canEdit(Model $record): bool
@@ -97,6 +97,7 @@ class ImportBatchResource extends Resource
     {
         return [
             'index' => Pages\ListImportBatches::route('/'),
+            'create' => Pages\StartImportBatch::route('/create'),
             'view' => Pages\ViewImportBatch::route('/{record}'),
         ];
     }

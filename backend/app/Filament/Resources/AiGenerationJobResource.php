@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Domain\Ai\Actions\RetryAiGenerationJobAction;
 use App\Domain\Ai\Enums\AiProvider;
 use App\Domain\Ai\Enums\GenerationStatus;
 use App\Domain\Ai\Models\AiGenerationJob;
@@ -13,11 +14,14 @@ use App\Filament\Resources\AiGenerationJobResource\RelationManagers\LogsRelation
 use App\Filament\Support\EnumOptions;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Throwable;
 
 /**
  * Jamais lu ni déclenché par une page publique (CLAUDE.md §6.1) — ce
@@ -38,7 +42,7 @@ class AiGenerationJobResource extends Resource
 
     public static function canCreate(): bool
     {
-        return false;
+        return static::canViewAny();
     }
 
     public static function canEdit(Model $record): bool
@@ -91,6 +95,22 @@ class AiGenerationJobResource extends Resource
                 SelectFilter::make('status')->options(EnumOptions::for(GenerationStatus::class)),
                 SelectFilter::make('provider')->options(EnumOptions::for(AiProvider::class)),
             ])
+            ->actions([
+                Action::make('retry')
+                    ->label('Relancer')
+                    ->icon('heroicon-o-arrow-path')
+                    ->visible(fn (AiGenerationJob $record): bool => $record->status === GenerationStatus::Failed
+                        && (auth()->user()?->can(PermissionName::AiPipelineManage->value) ?? false))
+                    ->requiresConfirmation()
+                    ->action(function (AiGenerationJob $record, RetryAiGenerationJobAction $action): void {
+                        try {
+                            $action->execute($record);
+                            Notification::make()->title('Génération remise en file')->success()->send();
+                        } catch (Throwable $exception) {
+                            Notification::make()->title('Relance impossible')->body($exception->getMessage())->danger()->send();
+                        }
+                    }),
+            ])
             ->defaultSort('created_at', 'desc');
     }
 
@@ -105,6 +125,7 @@ class AiGenerationJobResource extends Resource
     {
         return [
             'index' => Pages\ListAiGenerationJobs::route('/'),
+            'create' => Pages\LaunchAiGeneration::route('/create'),
             'view' => Pages\ViewAiGenerationJob::route('/{record}'),
         ];
     }

@@ -38,3 +38,20 @@ it('lets admin and super_admin access job runs, but not moderator', function ():
     $this->actingAs($superAdmin)->get('/admin/job-runs')->assertSuccessful();
     $this->actingAs($moderator)->get('/admin/job-runs')->assertForbidden();
 });
+
+it('lets admin and super_admin access the activity log and failed jobs, but not moderator', function (): void {
+    $admin = User::factory()->create();
+    $admin->assignRole(RoleName::Admin->value);
+    $superAdmin = User::factory()->create();
+    $superAdmin->assignRole(RoleName::SuperAdmin->value);
+    $moderator = User::factory()->create();
+    $moderator->assignRole(RoleName::Moderator->value);
+
+    $this->actingAs($admin)->get('/admin/activity-logs')->assertSuccessful();
+    $this->actingAs($superAdmin)->get('/admin/activity-logs')->assertSuccessful();
+    $this->actingAs($moderator)->get('/admin/activity-logs')->assertForbidden();
+
+    $this->actingAs($admin)->get('/admin/failed-jobs')->assertSuccessful();
+    $this->actingAs($superAdmin)->get('/admin/failed-jobs')->assertSuccessful();
+    $this->actingAs($moderator)->get('/admin/failed-jobs')->assertForbidden();
+});

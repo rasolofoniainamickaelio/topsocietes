@@ -26,3 +26,10 @@ it('denies content_manager access to the import resources', function (): void {
 
     $this->actingAs($contentManager)->get('/admin/import-mappings')->assertForbidden();
 });
+
+it('lets admin open the start-import page', function (): void {
+    $admin = User::factory()->create();
+    $admin->assignRole(RoleName::Admin->value);
+
+    $this->actingAs($admin)->get('/admin/import-batches/create')->assertSuccessful();
+});

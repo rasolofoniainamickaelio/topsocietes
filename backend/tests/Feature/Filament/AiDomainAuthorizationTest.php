@@ -26,3 +26,10 @@ it('denies moderator access to the AI resources', function (): void {
 
     $this->actingAs($moderator)->get('/admin/ai-prompts')->assertForbidden();
 });
+
+it('lets content_manager open the launch-generation page', function (): void {
+    $contentManager = User::factory()->create();
+    $contentManager->assignRole(RoleName::ContentManager->value);
+
+    $this->actingAs($contentManager)->get('/admin/ai-generation-jobs/create')->assertSuccessful();
+});

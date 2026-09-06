@@ -12,6 +12,7 @@ use App\Domain\Billing\Services\StripeCheckoutGateway;
 use App\Domain\Billing\Services\StripeRefundGateway;
 use App\Domain\Company\Models\Company;
 use App\Domain\Content\Models\ActivityContent;
+use App\Domain\Content\Models\AdminDivisionContent;
 use App\Domain\Content\Models\CityActivityContent;
 use App\Domain\Content\Models\CityContent;
 use App\Domain\Content\Models\DistrictContent;
@@ -91,6 +92,7 @@ class AppServiceProvider extends ServiceProvider
             'district_content' => DistrictContent::class,
             'activity_content' => ActivityContent::class,
             'city_activity_content' => CityActivityContent::class,
+            'admin_division_content' => AdminDivisionContent::class,
         ]);
     }
 }

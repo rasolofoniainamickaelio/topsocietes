@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Domain\Seo\Enums\PageType;
+use App\Domain\Seo\Jobs\GenerateSitemapsJob;
 use App\Domain\Seo\Models\SitemapShard;
 use App\Enums\PermissionName;
 use App\Filament\Resources\SitemapShardResource\Pages;
 use App\Filament\Support\EnumOptions;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -57,6 +60,19 @@ class SitemapShardResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('type')->options(EnumOptions::for(PageType::class)),
+            ])
+            ->actions([
+                Action::make('regenerate')
+                    ->label('Régénérer')
+                    ->icon('heroicon-o-arrow-path')
+                    ->visible(fn (): bool => auth()->user()?->can(PermissionName::SeoManage->value) ?? false)
+                    ->requiresConfirmation()
+                    ->modalDescription('Régénère tous les sitemaps de ce pays (tous types de page confondus), pas seulement ce segment.')
+                    ->action(function (SitemapShard $record): void {
+                        GenerateSitemapsJob::dispatch($record->country);
+
+                        Notification::make()->title('Régénération mise en file')->success()->send();
+                    }),
             ])
             ->defaultSort('generated_at', 'desc');
     }

@@ -29,6 +29,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * `latitude`/`longitude` (colonnes générées) et `location` (geography brute)
@@ -50,7 +52,13 @@ class Company extends Model
 
     use HasLocation;
     use HasPublicId;
+    use LogsActivity;
     use SoftDeletes;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logOnlyDirty()->dontSubmitEmptyLogs();
+    }
 
     protected $fillable = [
         'country_id',

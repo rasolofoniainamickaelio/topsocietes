@@ -10,12 +10,24 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, Notifiable;
+    use HasFactory, HasRoles, LogsActivity, Notifiable;
+
+    /**
+     * Jamais `password`/`remember_token` : un hash qui change reste un
+     * hash, sans intérêt d'audit, et `remember_token` n'est pas une donnée
+     * de gestion de compte.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logOnly(['name', 'email'])->logOnlyDirty()->dontSubmitEmptyLogs();
+    }
 
     /**
      * The attributes that are mass assignable.
