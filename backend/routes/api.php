@@ -25,9 +25,12 @@ use App\Http\Api\V1\Controllers\DisputeReportStoreController;
 use App\Http\Api\V1\Controllers\DistrictShowController;
 use App\Http\Api\V1\Controllers\PlanIndexController;
 use App\Http\Api\V1\Controllers\ResolvePathController;
+use App\Http\Api\V1\Controllers\RobotsController;
 use App\Http\Api\V1\Controllers\SectorIndexController;
 use App\Http\Api\V1\Controllers\SectorShowController;
 use App\Http\Api\V1\Controllers\ServiceLinkIndexController;
+use App\Http\Api\V1\Controllers\SitemapIndexController;
+use App\Http\Api\V1\Controllers\SitemapShardController;
 use App\Http\Api\V1\Controllers\StripeWebhookController;
 use App\Http\Middleware\ResolveCountry;
 use Illuminate\Support\Facades\Route;
@@ -83,4 +86,12 @@ Route::prefix('v1/{country}')->middleware(ResolveCountry::class)->group(function
     Route::get('/plans', PlanIndexController::class);
     Route::post('/companies/{slug}/claims', CompanyClaimStoreController::class)->middleware('auth:sanctum');
     Route::post('/companies/{slug}/checkout', CompanyCheckoutController::class)->middleware('auth:sanctum');
+
+    // Fichiers de service SEO (Phase 17-18) : le frontend, servi sur le vrai
+    // sous-domaine pays, expose `/sitemap.xml` et `/robots.txt` en proxy
+    // direct vers ces mêmes chemins (l'API reste sur une origine unique,
+    // voir docstring plus haut).
+    Route::get('/sitemap.xml', SitemapIndexController::class);
+    Route::get('/sitemaps/{type}-{index}.xml', SitemapShardController::class)->where(['type' => '[a-z_]+', 'index' => '[0-9]+']);
+    Route::get('/robots.txt', RobotsController::class);
 });

@@ -12,6 +12,7 @@ use App\Domain\Geo\Jobs\ResolveCompanyDistrictJob;
 use App\Domain\Geo\Models\City;
 use App\Domain\Seo\Actions\CreateRedirectAction;
 use App\Domain\Seo\Enums\RedirectReason;
+use App\Domain\Seo\Jobs\SyncCompanyPageRouteJob;
 use App\Domain\Seo\Services\InternalLinkingService;
 use Illuminate\Support\Facades\Cache;
 
@@ -45,6 +46,10 @@ class CompanyObserver
         if ($company->city_id !== null) {
             ResolveCompanyDistrictJob::dispatch($company);
         }
+
+        // Toute entreprise créée devient une route évaluable (Phase 18) —
+        // jamais en attente d'une première modification pour exister.
+        SyncCompanyPageRouteJob::dispatch($company);
     }
 
     public function updated(Company $company): void
@@ -73,6 +78,12 @@ class CompanyObserver
         // que de compter sur un geste manuel toujours oublié un jour.
         if ($company->isDirty('slug')) {
             $this->redirectOldCompanyPath($company);
+        }
+
+        // Réévaluation d'indexabilité (Phase 18) : tout champ qui influence
+        // le chemin, le statut de publication ou le score de contenu.
+        if ($company->isDirty(['slug', 'city_id', 'content_status', 'is_indexable', 'about_text'])) {
+            SyncCompanyPageRouteJob::dispatch($company);
         }
     }
 

@@ -79,4 +79,14 @@ return [
         ],
     ],
 
+    /*
+    | Domaine public du frontend (Phase 17) : les URL de sitemap doivent être
+    | absolues. `countries.subdomain` fournit le sous-domaine pays
+    | (ex. "fr"), ce paramètre fournit le domaine parent commun à tous les
+    | pays — jamais l'un ou l'autre codé en dur ensemble.
+    */
+    'frontend' => [
+        'base_domain' => env('FRONTEND_BASE_DOMAIN', 'topsocietes.com'),
+    ],
+
 ];

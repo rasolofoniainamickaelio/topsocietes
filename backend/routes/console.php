@@ -40,3 +40,9 @@ Schedule::command('geo:resolve-districts')->hourly();
 // fenêtre d'un jour de retard sur le démasquage est acceptable, contrairement
 // à un remasquage prématuré.
 Schedule::command('subscriptions:expire')->daily();
+
+// Consolidation des sitemaps (Phase 17) : les routes individuelles sont
+// synchronisées en continu (`SyncCompanyPageRouteJob`), cette régénération
+// périodique ne fait que reconstruire les fichiers XML segmentés à partir
+// de leur état courant. Quotidien, en dehors des heures de forte charge.
+Schedule::command('sitemaps:generate')->dailyAt('04:00');

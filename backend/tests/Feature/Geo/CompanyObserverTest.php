@@ -7,6 +7,7 @@ use App\Domain\Company\Models\Company;
 use App\Domain\Geo\Jobs\ComputeCompanyNearbyPoisJob;
 use App\Domain\Geo\Jobs\ResolveCompanyDistrictJob;
 use App\Domain\Geo\Models\City;
+use App\Domain\Seo\Jobs\SyncCompanyPageRouteJob;
 use App\Domain\Seo\Models\Redirect;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -78,4 +79,30 @@ it('creates no redirect when the slug does not change', function (): void {
     $company->update(['legal_name' => 'Autre nom légal']);
 
     expect(Redirect::query()->count())->toBe(0);
+});
+
+it('syncs the page route on creation', function (): void {
+    Queue::fake();
+
+    Company::factory()->create();
+
+    Queue::assertPushed(SyncCompanyPageRouteJob::class);
+});
+
+it('resyncs the page route when indexability-relevant fields change', function (): void {
+    $company = Company::factory()->create();
+    Queue::fake();
+
+    $company->update(['content_status' => CompanyContentStatus::Published]);
+
+    Queue::assertPushed(SyncCompanyPageRouteJob::class);
+});
+
+it('does not resync the page route for an unrelated field change', function (): void {
+    $company = Company::factory()->create();
+    Queue::fake();
+
+    $company->update(['legal_form_code' => 'SARL']);
+
+    Queue::assertNotPushed(SyncCompanyPageRouteJob::class);
 });

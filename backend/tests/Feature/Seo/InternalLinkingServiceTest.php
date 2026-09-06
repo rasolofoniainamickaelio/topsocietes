@@ -110,13 +110,15 @@ it('excludes a company explicitly marked non-indexable via a route', function ()
         'content_status' => CompanyContentStatus::Published,
         'is_indexable' => true,
     ]);
-    PageRoute::factory()->create([
-        'country_id' => $this->country->id,
-        'entity_type' => PageType::Company->value,
-        'entity_id' => $excluded->id,
-        'page_type' => PageType::Company,
-        'is_indexable' => false,
-    ]);
+
+    // `CompanyObserver` a déjà synchronisé sa propre route à la création
+    // (Phase 18) : on la force manuellement en non-indexable, comme le
+    // ferait un override back-office, plutôt que d'en insérer une seconde
+    // en doublon pour la même entité.
+    PageRoute::query()
+        ->where('entity_type', PageType::Company->value)
+        ->where('entity_id', $excluded->id)
+        ->update(['is_indexable' => false]);
 
     $links = app(InternalLinkingService::class)->forCompany($this->company);
 

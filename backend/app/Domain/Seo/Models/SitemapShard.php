@@ -11,7 +11,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property PageType $type
+ * @property Carbon|null $generated_at
+ */
 class SitemapShard extends Model
 {
     /** @use HasFactory<SitemapShardFactory> */
