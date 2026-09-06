@@ -7,14 +7,20 @@ namespace App\Domain\Company\Actions;
 use App\Domain\Company\Data\ListCompaniesData;
 use App\Domain\Company\Models\Company;
 use App\Domain\Geo\Models\Country;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 
+/**
+ * Pagination par curseur, jamais par offset (CLAUDE.md §6, Phase 14 :
+ * "pas de LIKE %…% ni d'OFFSET sur des millions de lignes") — cette liste
+ * publique est exposée sans limite de profondeur, contrairement à un
+ * listing d'admin.
+ */
 class ListCompaniesAction
 {
     private const PER_PAGE = 20;
 
-    /** @return LengthAwarePaginator<int, Company> */
-    public function execute(Country $country, ListCompaniesData $data): LengthAwarePaginator
+    /** @return CursorPaginator<int, Company> */
+    public function execute(Country $country, ListCompaniesData $data): CursorPaginator
     {
         return Company::query()
             ->where('country_id', $country->id)
@@ -35,6 +41,7 @@ class ListCompaniesAction
             )
             ->with(['city', 'district', 'activity'])
             ->orderBy('legal_name')
-            ->paginate(self::PER_PAGE);
+            ->orderBy('id')
+            ->cursorPaginate($data->per_page ?: self::PER_PAGE, ['*'], 'cursor', $data->cursor);
     }
 }

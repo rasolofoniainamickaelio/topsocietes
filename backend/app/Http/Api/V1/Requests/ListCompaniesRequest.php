@@ -22,6 +22,8 @@ class ListCompaniesRequest extends FormRequest
             'search' => ['nullable', 'string', 'max:100'],
             'city' => ['nullable', 'string', 'max:255'],
             'activity' => ['nullable', 'string', 'max:255'],
+            'cursor' => ['nullable', 'string'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];
     }
 }

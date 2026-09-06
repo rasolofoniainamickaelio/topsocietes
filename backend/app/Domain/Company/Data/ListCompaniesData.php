@@ -12,5 +12,7 @@ class ListCompaniesData extends Data
         public readonly ?string $search = null,
         public readonly ?string $city = null,
         public readonly ?string $activity = null,
+        public readonly ?string $cursor = null,
+        public readonly int $per_page = 20,
     ) {}
 }
