@@ -26,6 +26,7 @@ class CountryResource extends JsonResource
             'currency' => $this->currency,
             'timezone' => $this->timezone,
             'admin_level_labels' => $this->admin_level_labels,
+            'identifier_config' => $this->identifier_config,
             'url_patterns' => $this->url_patterns,
         ];
     }

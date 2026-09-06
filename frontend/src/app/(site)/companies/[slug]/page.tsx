@@ -32,7 +32,7 @@ export default async function CompanyPage({
   return (
     <main className="mx-auto flex max-w-[720px] flex-col gap-[var(--space-block)] px-4 py-8">
       <CompanyIdentityBlock company={company} />
-      <CompanyLegalInfoBlock company={company} />
+      <CompanyLegalInfoBlock company={company} country={country} />
       <CompanyActivityBlock company={company} />
       <CompanySectorBlock company={company} />
       <CompanyAddressBlock company={company} />

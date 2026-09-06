@@ -1,13 +1,22 @@
 import { FactPill } from "@/components/ui/FactPill";
 import { SectionCard } from "@/components/ui/SectionCard";
 import type { Company } from "@/types/company";
+import type { Country } from "@/types/country";
 
-export function CompanyLegalInfoBlock({ company }: { company: Company }) {
+export function CompanyLegalInfoBlock({
+  company,
+  country,
+}: {
+  company: Company;
+  country: Country;
+}) {
+  const identifierLabel = country.identifier_config?.primary?.name ?? "Identifiant";
+
   return (
     <SectionCard theme="company" title="Informations légales">
       <dl className="flex flex-wrap gap-x-6 gap-y-3 text-sm">
         <div>
-          <dt className="text-[var(--ink-muted)]">Identifiant</dt>
+          <dt className="text-[var(--ink-muted)]">{identifierLabel}</dt>
           <dd className="mt-1">
             <FactPill tone="company">{company.national_id}</FactPill>
           </dd>
