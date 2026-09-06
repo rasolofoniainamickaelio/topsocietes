@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getCurrentCountry } from "@/lib/country/get-current-country";
 import { getCompany } from "@/lib/api/company";
@@ -15,6 +17,36 @@ import { AdSlot } from "@/components/ui/AdSlot";
 
 const AD_CLOSE_COMPANY = "Fermer une société en difficultés";
 const AD_CREATE_COMPANY = "Créer gratuitement une société";
+
+/**
+ * Canonical AUTO-RÉFÉRENT sur l'URL réellement servie (`/companies/{slug}`),
+ * jamais sur `path` (Phase 16, backend) : cette structure d'URL définitive
+ * n'est pas encore servie par le frontend, y renvoyer produirait un
+ * canonical cassé. `noindex` uniquement si `is_indexable` vaut
+ * explicitement `false` — son absence (page jamais évaluée) reste
+ * indexable par défaut (Phase 18).
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const country = await getCurrentCountry();
+  const company = await getCompany(country.subdomain, slug);
+
+  if (!company) {
+    return {};
+  }
+
+  const host = (await headers()).get("host");
+
+  return {
+    title: company.legal_name,
+    alternates: host ? { canonical: `https://${host}/companies/${company.slug}` } : undefined,
+    robots: company.is_indexable === false ? { index: false, follow: false } : undefined,
+  };
+}
 
 /**
  * URL provisoire : la structure d'URL définitive est figée en Phase 16.

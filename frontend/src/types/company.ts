@@ -19,6 +19,12 @@ export interface Company {
   nearby_pois: NearbyPoi[];
   contacts?: Contact[];
   blocks?: ContentBlock[];
+  /**
+   * Absent tant que la page n'a pas encore été évaluée (Phase 18,
+   * `SyncCompanyPageRouteJob`) — traiter comme indexable par défaut plutôt
+   * que de masquer la page à tort.
+   */
+  is_indexable?: boolean;
 }
 
 /**

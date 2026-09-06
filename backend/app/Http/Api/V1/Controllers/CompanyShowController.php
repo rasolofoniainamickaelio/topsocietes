@@ -7,6 +7,8 @@ namespace App\Http\Api\V1\Controllers;
 use App\Domain\Company\Actions\ShowCompanyAction;
 use App\Domain\Content\Queries\CompanyPageBlocksQuery;
 use App\Domain\Geo\Models\Country;
+use App\Domain\Seo\Enums\PageType;
+use App\Domain\Seo\Models\PageRoute;
 use App\Domain\Seo\Services\InternalLinkingService;
 use App\Http\Api\V1\Resources\CompanyResource;
 use App\Http\Controllers\Controller;
@@ -26,10 +28,16 @@ class CompanyShowController extends Controller
         $company = $action->execute($resolvedCountry, (string) $request->route('slug'));
 
         // Attributs transitoires, jamais persistés : uniquement pour porter
-        // le registre de blocs (CLAUDE.md §4, Phase 08) et le maillage
-        // interne (Phase 15) jusqu'à `CompanyResource`.
+        // le registre de blocs (CLAUDE.md §4, Phase 08), le maillage interne
+        // (Phase 15) et la décision d'indexabilité (Phase 18) jusqu'à
+        // `CompanyResource`.
         $company->setAttribute('page_blocks', $blocksQuery->execute($company));
         $company->setAttribute('page_links', $linkingService->forCompany($company));
+        $company->setAttribute('page_route', PageRoute::query()
+            ->where('entity_type', $company->getMorphClass())
+            ->where('entity_id', $company->id)
+            ->where('page_type', PageType::Company)
+            ->first());
 
         return CompanyResource::make($company);
     }
