@@ -29,3 +29,14 @@ Schedule::call(function (): void {
         fn (string $subdomain) => Artisan::call('sources:collect-cities', ['country' => $subdomain]),
     );
 })->weekly()->sundays()->at('03:00')->name('sources:collect-cities:all-countries');
+
+// Rattachement quartier (Phase 04) : ne fait rien pour une entreprise déjà
+// rattachée (voir ResolveCompanyDistrictsCommand), donc sûr à rejouer
+// souvent. Cadence horaire provisoire, à ajuster avec le volume réel
+// d'imports quotidiens une fois en production.
+Schedule::command('geo:resolve-districts')->hourly();
+
+// Fin de cycle Phase 07 (visible → expiration → masqué). Quotidien : une
+// fenêtre d'un jour de retard sur le démasquage est acceptable, contrairement
+// à un remasquage prématuré.
+Schedule::command('subscriptions:expire')->daily();

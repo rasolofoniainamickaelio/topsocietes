@@ -43,7 +43,37 @@ class ValidateGenerationOutputAction
             $issues[] = 'nombre(s) non sourcé(s) : '.implode(', ', $unsourcedNumbers);
         }
 
+        $unsourcedEntities = $this->findUnsourcedNamedEntities($output, $facts);
+
+        if ($unsourcedEntities !== []) {
+            $issues[] = 'nom(s) propre(s) non sourcé(s) : '.implode(', ', $unsourcedEntities);
+        }
+
         return new ValidationReportData(passed: $issues === [], insufficientData: false, issues: $issues);
+    }
+
+    /**
+     * Détection par mot capitalisé (1 à 3 mots consécutifs), pas par NER :
+     * limite assumée, même esprit défensif que `ForbiddenTopics` — un
+     * premier filet, la revue humaine reste la garantie finale. Le premier
+     * mot d'une phrase est ignoré (capitalisation grammaticale, pas un nom
+     * propre) en ne retenant que les suites capitalisées d'au moins 2 mots
+     * OU un mot seul déjà présent tel quel dans les faits.
+     *
+     * @param  Collection<int, Fact>  $facts
+     * @return array<int, string>
+     */
+    private function findUnsourcedNamedEntities(string $output, Collection $facts): array
+    {
+        preg_match_all('/\b(?:[A-ZÀ-Ý][\wÀ-ÿ\'-]*(?:\s+[A-ZÀ-Ý][\wÀ-ÿ\'-]*){1,2})\b/u', $output, $matches);
+
+        $sourceText = $facts->pluck('value')->filter()->implode(' ');
+
+        return collect($matches[0])
+            ->unique()
+            ->reject(fn (string $entity) => str_contains($sourceText, $entity))
+            ->values()
+            ->all();
     }
 
     /**

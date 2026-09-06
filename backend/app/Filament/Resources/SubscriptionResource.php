@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Domain\Billing\Actions\SetSubscriptionStatusAction;
 use App\Domain\Billing\Enums\SubscriptionStatus;
 use App\Domain\Billing\Models\Subscription;
 use App\Enums\PermissionName;
 use App\Filament\Resources\SubscriptionResource\Pages;
 use App\Filament\Support\EnumOptions;
+use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -56,6 +59,20 @@ class SubscriptionResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('status')->options(EnumOptions::for(SubscriptionStatus::class)),
+            ])
+            ->actions([
+                Action::make('changeStatus')
+                    ->label('Changer le statut')
+                    ->icon('heroicon-o-arrow-path-rounded-square')
+                    ->visible(fn (): bool => auth()->user()?->can(PermissionName::BillingManage->value) ?? false)
+                    ->form([
+                        Select::make('status')->options(EnumOptions::for(SubscriptionStatus::class))->required(),
+                    ])
+                    ->requiresConfirmation()
+                    ->modalDescription('Un passage à "Actif" démasque les coordonnées, un passage à tout autre statut les remasque — de façon forcée, non affectée par le cycle automatique.')
+                    ->action(function (Subscription $record, array $data, SetSubscriptionStatusAction $action): void {
+                        $action->execute($record, SubscriptionStatus::from($data['status']), auth()->user());
+                    }),
             ])
             ->defaultSort('created_at', 'desc');
     }

@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Domain\Ai\Models;
 
 use App\Domain\Ai\Enums\AiProvider;
+use App\Domain\Ai\Enums\GenerationMode;
 use App\Domain\Ai\Enums\GenerationStatus;
+use App\Domain\Taxonomy\Models\Activity;
+use App\Domain\Taxonomy\Models\Sector;
 use Database\Factories\AiGenerationJobFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -33,7 +36,10 @@ class AiGenerationJob extends Model
     protected $fillable = [
         'target_type',
         'target_id',
+        'activity_id',
+        'sector_id',
         'section',
+        'mode',
         'locale',
         'prompt_id',
         'model',
@@ -57,6 +63,7 @@ class AiGenerationJob extends Model
         return [
             'provider' => AiProvider::class,
             'status' => GenerationStatus::class,
+            'mode' => GenerationMode::class,
             'attempts' => 'integer',
             'scheduled_at' => 'datetime',
             'started_at' => 'datetime',
@@ -78,6 +85,29 @@ class AiGenerationJob extends Model
     public function prompt(): BelongsTo
     {
         return $this->belongsTo(AiPrompt::class, 'prompt_id');
+    }
+
+    /**
+     * Uniquement renseignée pour une génération croisée ville×activité, où
+     * `target` pointe sur la ville faute de modèle Eloquent propre au
+     * couple (jamais en même temps que `sector`, même XOR que
+     * `city_activity_contents`).
+     *
+     * @return BelongsTo<Activity, $this>
+     */
+    public function activity(): BelongsTo
+    {
+        return $this->belongsTo(Activity::class);
+    }
+
+    /**
+     * Symétrique de `activity()` pour une génération croisée ville×secteur.
+     *
+     * @return BelongsTo<Sector, $this>
+     */
+    public function sector(): BelongsTo
+    {
+        return $this->belongsTo(Sector::class);
     }
 
     /** @return HasMany<AiGenerationLog, $this> */

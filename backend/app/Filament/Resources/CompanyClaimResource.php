@@ -15,6 +15,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -54,6 +55,42 @@ class CompanyClaimResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('status')->options(EnumOptions::for(CompanyClaimStatus::class)),
+            ])
+            ->actions([
+                Action::make('approve')
+                    ->label('Approuver')
+                    ->icon('heroicon-o-check')
+                    ->color('success')
+                    ->visible(fn (CompanyClaim $record): bool => in_array($record->status, [
+                        CompanyClaimStatus::Pending,
+                        CompanyClaimStatus::Verifying,
+                    ], true))
+                    ->authorize('review')
+                    ->requiresConfirmation()
+                    ->action(fn (CompanyClaim $record) => $record->update([
+                        'status' => CompanyClaimStatus::Approved,
+                        'reviewed_by' => auth()->id(),
+                        'reviewed_at' => now(),
+                    ])),
+                Action::make('reject')
+                    ->label('Refuser')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('danger')
+                    ->visible(fn (CompanyClaim $record): bool => in_array($record->status, [
+                        CompanyClaimStatus::Pending,
+                        CompanyClaimStatus::Verifying,
+                    ], true))
+                    ->authorize('review')
+                    ->requiresConfirmation()
+                    ->form([
+                        Textarea::make('notes')->label('Motif du refus')->required(),
+                    ])
+                    ->action(fn (CompanyClaim $record, array $data) => $record->update([
+                        'status' => CompanyClaimStatus::Rejected,
+                        'reviewed_by' => auth()->id(),
+                        'reviewed_at' => now(),
+                        'notes' => $data['notes'],
+                    ])),
             ])
             ->defaultSort('created_at', 'desc');
     }

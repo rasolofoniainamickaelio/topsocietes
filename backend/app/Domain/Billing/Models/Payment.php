@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Aucune donnée bancaire stockée : uniquement une référence du
  * prestataire (`provider_payment_id`) et son `payload` brut.
+ *
+ * @property PaymentStatus $status
  */
 class Payment extends Model
 {

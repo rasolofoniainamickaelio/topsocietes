@@ -10,6 +10,7 @@ use App\Http\Api\V1\Controllers\AdSlotCampaignsController;
 use App\Http\Api\V1\Controllers\Auth\LoginController;
 use App\Http\Api\V1\Controllers\Auth\LogoutController;
 use App\Http\Api\V1\Controllers\Auth\MeController;
+use App\Http\Api\V1\Controllers\Auth\MyCompaniesController;
 use App\Http\Api\V1\Controllers\Auth\RegisterController;
 use App\Http\Api\V1\Controllers\CityIndexController;
 use App\Http\Api\V1\Controllers\CityShowController;
@@ -41,6 +42,11 @@ Route::prefix('v1/auth')->group(function (): void {
     Route::post('/login', LoginController::class)->middleware('throttle:5,1');
     Route::post('/logout', LogoutController::class)->middleware('auth:sanctum');
     Route::get('/me', MeController::class)->middleware('auth:sanctum');
+    // Tableau de bord entreprise (Phase 07) : un compte n'étant rattaché à
+    // aucun pays (voir docstring au-dessus), les fiches revendiquées d'un
+    // utilisateur peuvent appartenir à plusieurs pays — hors du préfixe
+    // `v1/{country}`, comme le reste de ce groupe.
+    Route::get('/me/companies', MyCompaniesController::class)->middleware('auth:sanctum');
 });
 
 /**

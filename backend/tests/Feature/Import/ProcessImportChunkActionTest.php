@@ -177,3 +177,97 @@ it('reads rows from an XML file', function (): void {
 
     expect(Company::query()->where('national_id', '777777777')->firstOrFail()->legal_name)->toBe('Gamma XML');
 });
+
+it('reads rows from a JSON Lines file', function (): void {
+    $jsonl = implode("\n", [
+        json_encode(['siren' => '888800001', 'denomination' => 'Delta JSON', 'cp' => '75001']),
+        json_encode(['siren' => '888800002', 'denomination' => 'Epsilon JSON', 'cp' => '75001']),
+    ]);
+
+    $path = 'imports/'.uniqid('test_', true).'.jsonl';
+    Storage::disk('local')->put($path, $jsonl);
+
+    $batch = ImportBatch::factory()->for($this->country)->create([
+        'filename' => $path,
+        'format' => ImportFormat::Json,
+        'mapping_id' => $this->mapping->id,
+        'total_rows' => 2,
+        'checkpoint' => ['offset' => 0],
+    ]);
+
+    app(ProcessImportChunkAction::class)->execute($batch);
+
+    $batch->refresh();
+    expect($batch->created_count)->toBe(2)
+        ->and($batch->status)->toBe(ImportStatus::Completed);
+
+    expect(Company::query()->where('national_id', '888800001')->firstOrFail()->legal_name)->toBe('Delta JSON');
+    expect(Company::query()->where('national_id', '888800002')->firstOrFail()->legal_name)->toBe('Epsilon JSON');
+});
+
+it('counts an intra-batch duplicate national_id separately from updated/skipped', function (): void {
+    $csv = "siren,denomination,cp\n"
+        ."999999991,First Row,75001\n"
+        ."999999991,First Row Renamed,75001\n"; // même siren, même fichier
+
+    $batch = makeBatch($this->country, $this->mapping, $csv);
+
+    app(ProcessImportChunkAction::class)->execute($batch);
+
+    $batch->refresh();
+    expect($batch->created_count)->toBe(1)
+        ->and($batch->updated_count)->toBe(1)
+        ->and($batch->duplicate_count)->toBe(1);
+
+    expect(Company::query()->where('national_id', '999999991')->firstOrFail()->legal_name)->toBe('First Row Renamed');
+});
+
+it('geocodes exactly when the source file provides coordinates, and marks an unresolvable row as failed', function (): void {
+    $mappingWithCoords = ImportMapping::factory()->for($this->country)->create([
+        'column_map' => [
+            'siren' => 'national_id',
+            'denomination' => 'legal_name',
+            'cp' => 'postal_code',
+            'lat' => 'latitude',
+            'lng' => 'longitude',
+        ],
+    ]);
+
+    $csv = "siren,denomination,cp,lat,lng\n"
+        ."100000001,Exact Co,75001,48.8566,2.3522\n" // coordonnées exactes fournies
+        ."100000002,Failed Co,00000,,\n";             // code postal inconnu, pas de coordonnées
+
+    $batch = makeBatch($this->country, $mappingWithCoords, $csv);
+
+    app(ProcessImportChunkAction::class)->execute($batch);
+
+    $exact = Company::query()->where('national_id', '100000001')->firstOrFail();
+    expect($exact->geocoding_status)->toBe(GeocodingStatus::Exact);
+
+    $failed = Company::query()->where('national_id', '100000002')->firstOrFail();
+    expect($failed->geocoding_status)->toBe(GeocodingStatus::Failed);
+});
+
+it('never downgrades an already-exact geocoding on a later, less precise re-import', function (): void {
+    $mappingWithCoords = ImportMapping::factory()->for($this->country)->create([
+        'column_map' => [
+            'siren' => 'national_id',
+            'denomination' => 'legal_name',
+            'cp' => 'postal_code',
+            'lat' => 'latitude',
+            'lng' => 'longitude',
+        ],
+    ]);
+
+    $firstCsv = "siren,denomination,cp,lat,lng\n100000003,Precise Co,75001,48.8566,2.3522\n";
+    $firstBatch = makeBatch($this->country, $mappingWithCoords, $firstCsv);
+    app(ProcessImportChunkAction::class)->execute($firstBatch);
+
+    $secondCsv = "siren,denomination,cp,lat,lng\n100000003,Precise Co Renamed,75001,,\n";
+    $secondBatch = makeBatch($this->country, $mappingWithCoords, $secondCsv);
+    app(ProcessImportChunkAction::class)->execute($secondBatch);
+
+    $company = Company::query()->where('national_id', '100000003')->firstOrFail();
+    expect($company->legal_name)->toBe('Precise Co Renamed')
+        ->and($company->geocoding_status)->toBe(GeocodingStatus::Exact);
+});

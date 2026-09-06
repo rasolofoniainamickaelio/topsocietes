@@ -21,10 +21,11 @@ use App\Domain\Import\Support\MoroccoCategoryNormalizer;
 use App\Domain\Import\Support\RowTransformers;
 use App\Domain\Taxonomy\Models\Activity;
 use BackedEnum;
+use DOMElement;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use SimpleXMLElement;
 use Throwable;
+use XMLReader;
 
 /**
  * Traite un lot de lignes à partir de `checkpoint.offset` et avance ce
@@ -63,13 +64,14 @@ class ProcessImportChunkAction
         $created = 0;
         $updated = 0;
         $skipped = 0;
+        $duplicates = 0;
         $errors = 0;
 
         foreach ($rows as $index => $rawRow) {
             $rowNumber = $index + 1;
 
             try {
-                $outcome = $this->processRow($batch, $mapping, $country, $rawRow);
+                $outcome = $this->processRow($batch, $mapping, $country, $rawRow, $duplicates);
 
                 match ($outcome) {
                     'created' => $created++,
@@ -94,6 +96,7 @@ class ProcessImportChunkAction
             'created_count' => $batch->created_count + $created,
             'updated_count' => $batch->updated_count + $updated,
             'skipped_count' => $batch->skipped_count + $skipped,
+            'duplicate_count' => $batch->duplicate_count + $duplicates,
             'error_count' => $batch->error_count + $errors,
             'checkpoint' => ['offset' => $newOffset],
             'status' => $hasMore ? ImportStatus::Running : ImportStatus::Completed,
@@ -104,10 +107,32 @@ class ProcessImportChunkAction
     }
 
     /**
+     * Retraite une seule ligne préalablement journalisée dans
+     * `import_errors`, sans toucher au checkpoint ni aux compteurs agrégés
+     * du lot — c'est `RetryImportErrorsAction` qui orchestre ces
+     * ajustements (Phase 03, "relance ciblée des lignes en échec").
+     *
      * @param  array<string, mixed>  $rawRow
      * @return 'created'|'updated'|'skipped'
      */
-    private function processRow(ImportBatch $batch, ImportMapping $mapping, Country $country, array $rawRow): string
+    public function retryRow(ImportBatch $batch, array $rawRow): string
+    {
+        $mapping = $batch->mapping;
+
+        if ($mapping === null) {
+            throw new \RuntimeException("Le lot d'import #{$batch->id} n'a pas de mapping associé.");
+        }
+
+        $duplicates = 0;
+
+        return $this->processRow($batch, $mapping, $batch->country, $rawRow, $duplicates);
+    }
+
+    /**
+     * @param  array<string, mixed>  $rawRow
+     * @return 'created'|'updated'|'skipped'
+     */
+    private function processRow(ImportBatch $batch, ImportMapping $mapping, Country $country, array $rawRow, int &$duplicates): string
     {
         $mapped = $this->mapRow($mapping, $rawRow);
 
@@ -146,6 +171,7 @@ class ProcessImportChunkAction
         ];
 
         $dataHash = $this->hashFields($fields);
+        $geocoding = $this->resolveGeocoding($country, $mapped, $city);
 
         $existing = Company::query()
             ->where('country_id', $country->id)
@@ -158,15 +184,23 @@ class ProcessImportChunkAction
                 'country_id' => $country->id,
                 'national_id' => $nationalId,
                 'slug' => $this->slugAction->execute($country, $legalName, $city),
-                'geocoding_status' => $city !== null ? GeocodingStatus::CityLevel : GeocodingStatus::Pending,
+                'geocoding_status' => $geocoding['status'],
                 'content_status' => CompanyContentStatus::Pending,
                 'is_indexable' => true,
                 'source_batch_id' => $batch->id,
-                'location' => $this->locationExpression($city),
+                'location' => $geocoding['location'],
                 'data_hash' => $dataHash,
             ]);
 
             return 'created';
+        }
+
+        // Deux lignes du MÊME fichier qui résolvent à la même entreprise
+        // (même `national_id`) : un doublon intra-lot, distinct d'une mise à
+        // jour légitime d'une fiche déjà connue avant ce lot (Phase 03,
+        // "détection des doublons").
+        if ($existing->source_batch_id === $batch->id) {
+            $duplicates++;
         }
 
         if ($existing->data_hash === $dataHash) {
@@ -187,8 +221,14 @@ class ProcessImportChunkAction
         if ($city !== null) {
             $updateFields['city_id'] = $city->id;
             $updateFields['admin_division_id'] = $city->admin_division_id;
-            $updateFields['geocoding_status'] = GeocodingStatus::CityLevel;
-            $updateFields['location'] = $this->locationExpression($city);
+        }
+
+        // Ne jamais régresser un géocodage déjà acquis (ex. des coordonnées
+        // exactes obtenues sur un import précédent) au motif qu'une ligne
+        // ultérieure est moins précise ou ne résout plus rien.
+        if ($this->isBetterGeocoding($geocoding['status'], $existing->geocoding_status)) {
+            $updateFields['geocoding_status'] = $geocoding['status'];
+            $updateFields['location'] = $geocoding['location'];
         }
 
         $existing->update($updateFields);
@@ -305,13 +345,83 @@ class ProcessImportChunkAction
             ->first();
     }
 
-    private function locationExpression(?City $city): mixed
+    /**
+     * Détermine le statut de géocodage et la position à écrire, par ordre de
+     * précision décroissant (Phase 04) : des coordonnées exactes fournies
+     * par le fichier source priment toujours sur le centroïde de la ville
+     * résolue ; en l'absence des deux, distingue un rattachement qui n'a
+     * jamais été tenté (`Pending`, aucune colonne d'adresse exploitable dans
+     * la ligne) d'un rattachement tenté sans succès (`Failed`).
+     *
+     * @param  array<string, mixed>  $mapped
+     * @return array{status: GeocodingStatus, location: mixed}
+     */
+    private function resolveGeocoding(Country $country, array $mapped, ?City $city): array
     {
-        if ($city === null) {
+        $latitude = $this->toFloatOrNull($mapped['latitude'] ?? null);
+        $longitude = $this->toFloatOrNull($mapped['longitude'] ?? null);
+
+        if ($latitude !== null && $longitude !== null) {
+            return ['status' => GeocodingStatus::Exact, 'location' => $this->locationExpression($longitude, $latitude)];
+        }
+
+        if ($city !== null) {
+            return [
+                'status' => GeocodingStatus::CityLevel,
+                'location' => $this->locationExpression((float) $city->longitude, (float) $city->latitude),
+            ];
+        }
+
+        if ($this->addressAttempted($country, $mapped)) {
+            return ['status' => GeocodingStatus::Failed, 'location' => null];
+        }
+
+        return ['status' => GeocodingStatus::Pending, 'location' => null];
+    }
+
+    private function toFloatOrNull(mixed $value): ?float
+    {
+        if ($value === null || $value === '' || ! is_numeric($value)) {
             return null;
         }
 
-        return DB::raw("ST_SetSRID(ST_MakePoint({$city->longitude}, {$city->latitude}), 4326)::geography");
+        return (float) $value;
+    }
+
+    /**
+     * @param  array<string, mixed>  $mapped
+     */
+    private function addressAttempted(Country $country, array $mapped): bool
+    {
+        $strategy = $country->settings['city_resolution'] ?? 'postal_code';
+
+        return $strategy === 'slug'
+            ? filled($mapped['city_slug'] ?? null)
+            : filled($mapped['postal_code'] ?? null);
+    }
+
+    /**
+     * Ordre de précision croissant : Pending < Failed < CityLevel <
+     * Approximate < Exact. `Failed` n'est "meilleur" que face à `Pending`
+     * (un échec constaté vaut mieux qu'une absence de tentative pour le
+     * reporting de reprise manuelle), jamais face à un géocodage déjà acquis.
+     */
+    private function isBetterGeocoding(GeocodingStatus $new, GeocodingStatus $current): bool
+    {
+        $rank = [
+            GeocodingStatus::Pending->value => 0,
+            GeocodingStatus::Failed->value => 1,
+            GeocodingStatus::CityLevel->value => 2,
+            GeocodingStatus::Approximate->value => 3,
+            GeocodingStatus::Exact->value => 4,
+        ];
+
+        return $rank[$new->value] > $rank[$current->value];
+    }
+
+    private function locationExpression(float $longitude, float $latitude): mixed
+    {
+        return DB::raw("ST_SetSRID(ST_MakePoint({$longitude}, {$latitude}), 4326)::geography");
     }
 
     /**
@@ -404,14 +514,49 @@ class ProcessImportChunkAction
     }
 
     /**
+     * JSON Lines : un objet par ligne, lu au fil de l'eau avec `fgets` — le
+     * fichier entier n'est jamais chargé ni reparsé en mémoire, quelle que
+     * soit sa taille (Phase 03, "jamais tout en mémoire").
+     *
      * @return array<int, array<string, mixed>>
      */
     private function readJsonRows(string $absolutePath, int $offset, int $limit): array
     {
-        /** @var array<int, array<string, mixed>> $decoded */
-        $decoded = json_decode(file_get_contents($absolutePath) ?: '[]', true) ?? [];
+        $handle = fopen($absolutePath, 'rb');
 
-        return array_slice($decoded, $offset, $limit, true);
+        if ($handle === false) {
+            return [];
+        }
+
+        $rows = [];
+
+        try {
+            $index = 0;
+
+            while (($line = fgets($handle)) !== false) {
+                $line = trim($line);
+
+                if ($line === '') {
+                    continue;
+                }
+
+                if ($index >= $offset && $index < $offset + $limit) {
+                    /** @var array<string, mixed>|null $decoded */
+                    $decoded = json_decode($line, true);
+                    $rows[$index] = is_array($decoded) ? $decoded : [];
+                }
+
+                $index++;
+
+                if ($index >= $offset + $limit) {
+                    break;
+                }
+            }
+        } finally {
+            fclose($handle);
+        }
+
+        return $rows;
     }
 
     /**
@@ -419,44 +564,76 @@ class ProcessImportChunkAction
      * élément racine dont chaque enfant direct est une ligne, elle-même
      * composée d'attributs et/ou d'éléments enfants texte (les deux sont
      * lus comme colonnes). À ajuster dès qu'un fichier réel est disponible.
-     * Ne passe aucun flag `LIBXML_NOENT`/`LIBXML_DTDLOAD` : la substitution
-     * d'entités externes reste désactivée (protection XXE par défaut).
+     *
+     * Lu avec `XMLReader` (curseur) plutôt que `simplexml_load_file` : seul
+     * l'élément en cours d'inspection est développé en DOM
+     * (`XMLReader::expand()`), jamais le document entier. Le chargement de
+     * DTD externe et la substitution d'entités restent désactivés (protection
+     * XXE).
      *
      * @return array<int, array<string, mixed>>
      */
     private function readXmlRows(string $absolutePath, int $offset, int $limit): array
     {
-        $xml = @simplexml_load_file($absolutePath);
+        $reader = new XMLReader;
 
-        if (! $xml instanceof SimpleXMLElement) {
+        if (! $reader->open($absolutePath, flags: LIBXML_NONET)) {
             return [];
         }
+
+        $reader->setParserProperty(XMLReader::LOADDTD, false);
+        $reader->setParserProperty(XMLReader::SUBST_ENTITIES, false);
 
         $rows = [];
         $index = 0;
 
-        foreach ($xml->children() as $rowElement) {
-            if ($index >= $offset && $index < $offset + $limit) {
-                $row = [];
-
-                foreach ($rowElement->attributes() ?? [] as $name => $value) {
-                    $row[(string) $name] = (string) $value;
+        try {
+            while ($reader->read()) {
+                if ($reader->nodeType !== XMLReader::ELEMENT || $reader->depth !== 1) {
+                    continue;
                 }
 
-                foreach ($rowElement->children() as $child) {
-                    $row[$child->getName()] = trim((string) $child);
+                if ($index >= $offset && $index < $offset + $limit) {
+                    $rows[$index] = $this->xmlNodeToRow($reader);
+                } else {
+                    $reader->next();
                 }
 
-                $rows[$index] = $row;
-            }
+                $index++;
 
-            $index++;
-
-            if ($index >= $offset + $limit) {
-                break;
+                if ($index >= $offset + $limit) {
+                    break;
+                }
             }
+        } finally {
+            $reader->close();
         }
 
         return $rows;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function xmlNodeToRow(XMLReader $reader): array
+    {
+        $node = $reader->expand();
+        $row = [];
+
+        if (! $node instanceof DOMElement) {
+            return $row;
+        }
+
+        foreach ($node->attributes as $attribute) {
+            $row[$attribute->nodeName] = $attribute->nodeValue;
+        }
+
+        foreach ($node->childNodes as $child) {
+            if ($child instanceof DOMElement) {
+                $row[$child->nodeName] = trim($child->textContent);
+            }
+        }
+
+        return $row;
     }
 }

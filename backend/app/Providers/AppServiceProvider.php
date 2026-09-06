@@ -7,7 +7,9 @@ namespace App\Providers;
 use App\Domain\Ai\Contracts\AiDriver;
 use App\Domain\Ai\Drivers\OpenAiDriver;
 use App\Domain\Billing\Contracts\CheckoutGatewayInterface;
+use App\Domain\Billing\Contracts\RefundGatewayInterface;
 use App\Domain\Billing\Services\StripeCheckoutGateway;
+use App\Domain\Billing\Services\StripeRefundGateway;
 use App\Domain\Company\Models\Company;
 use App\Domain\Content\Models\ActivityContent;
 use App\Domain\Content\Models\CityActivityContent;
@@ -19,6 +21,7 @@ use App\Domain\Geo\Models\PointOfInterest;
 use App\Domain\Search\Contracts\SearchEngineInterface;
 use App\Domain\Search\Services\PostgresSearchEngine;
 use App\Domain\Taxonomy\Models\Activity;
+use App\Domain\Taxonomy\Models\Sector;
 use App\Enums\RoleName;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -38,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->bind(CheckoutGatewayInterface::class, StripeCheckoutGateway::class);
+        $this->app->bind(RefundGatewayInterface::class, StripeRefundGateway::class);
 
         // Couche d'abstraction fournisseur IA (Phases 10-11) — changer de
         // fournisseur ne touche que ce binding, jamais le code métier.
@@ -80,6 +84,7 @@ class AppServiceProvider extends ServiceProvider
             'city' => City::class,
             'district' => District::class,
             'activity' => Activity::class,
+            'sector' => Sector::class,
             'poi' => PointOfInterest::class,
             'company' => Company::class,
             'city_content' => CityContent::class,

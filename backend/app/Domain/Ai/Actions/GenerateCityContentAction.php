@@ -6,11 +6,12 @@ namespace App\Domain\Ai\Actions;
 
 use App\Domain\Ai\Contracts\AiDriver;
 use App\Domain\Ai\Data\GenerationRequestData;
-use App\Domain\Ai\Data\GenerationResultData;
 use App\Domain\Ai\Enums\GenerationStatus;
 use App\Domain\Ai\Models\AiGenerationJob;
-use App\Domain\Ai\Models\AiGenerationLog;
 use App\Domain\Ai\Models\AiPrompt;
+use App\Domain\Ai\Support\AiWritableFields;
+use App\Domain\Ai\Support\ForbiddenTopics;
+use App\Domain\Content\Actions\SnapshotContentRevisionAction;
 use App\Domain\Content\Enums\ContentSection;
 use App\Domain\Content\Enums\ContentSectionScope;
 use App\Domain\Content\Enums\ContentStatus;
@@ -34,6 +35,11 @@ class GenerateCityContentAction
     public function __construct(
         private readonly AiDriver $driver,
         private readonly ValidateGenerationOutputAction $validator,
+        private readonly SnapshotContentRevisionAction $snapshotRevision,
+        private readonly LogGenerationAttemptAction $logAttempt,
+        private readonly FinalizeGenerationJobAction $finalizeJob,
+        private readonly CheckAiBudgetAction $checkBudget,
+        private readonly RecordAiSpendAction $recordSpend,
     ) {}
 
     public function execute(City $city, ContentSection $section): AiGenerationJob
@@ -61,14 +67,20 @@ class GenerateCityContentAction
         ]);
 
         if ($prompt === null) {
-            $this->finalize($job, GenerationStatus::Failed, errorMessage: 'Aucun prompt actif pour le scope city.');
+            $this->finalizeJob->execute($job, GenerationStatus::Failed, errorMessage: 'Aucun prompt actif pour le scope city.');
 
             return $job->fresh();
         }
 
         if ($facts->isEmpty()) {
-            $this->log($job, '', $facts, null, null);
-            $this->finalize($job, GenerationStatus::Rejected, errorMessage: 'Aucun fait exploitable pour cette ville — aucun appel au fournisseur.');
+            $this->logAttempt->execute($job, '', $facts, null, null);
+            $this->finalizeJob->execute($job, GenerationStatus::Rejected, errorMessage: 'Aucun fait exploitable pour cette ville — aucun appel au fournisseur.');
+
+            return $job->fresh();
+        }
+
+        if (! $this->checkBudget->execute($city->country)) {
+            $this->finalizeJob->execute($job, GenerationStatus::Rejected, errorMessage: 'Budget IA mensuel du pays dépassé.');
 
             return $job->fresh();
         }
@@ -76,36 +88,38 @@ class GenerateCityContentAction
         $userPrompt = $this->buildUserPrompt($prompt->user_template, $city, $section, $facts);
 
         $result = $this->driver->generate(new GenerationRequestData(
-            systemPrompt: $prompt->system_prompt,
+            systemPrompt: ForbiddenTopics::SYSTEM_GUARDRAIL."\n\n".$prompt->system_prompt,
             userPrompt: $userPrompt,
             model: $prompt->model,
         ));
 
         if (! $result->success) {
-            $this->log($job, $userPrompt, $facts, null, null);
-            $this->finalize($job, GenerationStatus::Failed, $result, $result->errorMessage);
+            $this->logAttempt->execute($job, $userPrompt, $facts, null, null);
+            $this->finalizeJob->execute($job, GenerationStatus::Failed, $result, $result->errorMessage);
 
             return $job->fresh();
         }
 
+        $this->recordSpend->execute($city->country, $result->costCents ?? 0);
+
         $report = $this->validator->execute((string) $result->rawOutput, $facts);
-        $this->log($job, $userPrompt, $facts, $result->rawOutput, $report->toArray());
+        $this->logAttempt->execute($job, $userPrompt, $facts, $result->rawOutput, $report->toArray());
 
         if ($report->insufficientData) {
-            $this->finalize($job, GenerationStatus::Rejected, $result, 'Le modèle a signalé des faits insuffisants pour rédiger ce contenu.');
+            $this->finalizeJob->execute($job, GenerationStatus::Rejected, $result, 'Le modèle a signalé des faits insuffisants pour rédiger ce contenu.');
 
             return $job->fresh();
         }
 
         if (! $report->passed) {
             $this->writeContent($city, $section, (string) $result->rawOutput, ContentStatus::Review, $job, $facts);
-            $this->finalize($job, GenerationStatus::NeedsReview, $result, implode(' ; ', $report->issues));
+            $this->finalizeJob->execute($job, GenerationStatus::NeedsReview, $result, implode(' ; ', $report->issues));
 
             return $job->fresh();
         }
 
         $this->writeContent($city, $section, (string) $result->rawOutput, ContentStatus::Generated, $job, $facts);
-        $this->finalize($job, GenerationStatus::Succeeded, $result);
+        $this->finalizeJob->execute($job, GenerationStatus::Succeeded, $result);
 
         return $job->fresh();
     }
@@ -128,43 +142,24 @@ class GenerateCityContentAction
 
     /**
      * @param  Collection<int, Fact>  $facts
-     * @param  array<string, mixed>|null  $validationReport
-     */
-    private function log(AiGenerationJob $job, string $userPrompt, Collection $facts, ?string $rawOutput, ?array $validationReport): void
-    {
-        AiGenerationLog::create([
-            'generation_job_id' => $job->id,
-            'input_payload' => [
-                'prompt' => $userPrompt,
-                'facts' => $facts->map(fn (Fact $fact) => ['key' => $fact->key, 'value' => $fact->value])->all(),
-            ],
-            'raw_output' => $rawOutput,
-            'validation_report' => $validationReport,
-        ]);
-    }
-
-    private function finalize(AiGenerationJob $job, GenerationStatus $status, ?GenerationResultData $result = null, ?string $errorMessage = null): void
-    {
-        $job->update([
-            'status' => $status,
-            'finished_at' => now(),
-            'duration_ms' => (int) $job->started_at->diffInMilliseconds(now()),
-            'input_tokens' => $result?->inputTokens,
-            'output_tokens' => $result?->outputTokens,
-            'cost_cents' => $result?->costCents,
-            'error_message' => $errorMessage,
-        ]);
-    }
-
-    /**
-     * @param  Collection<int, Fact>  $facts
      */
     private function writeContent(City $city, ContentSection $section, string $body, ContentStatus $status, AiGenerationJob $job, Collection $facts): CityContent
     {
+        $existing = CityContent::query()
+            ->where(['city_id' => $city->id, 'locale' => self::LOCALE, 'section' => $section->value])
+            ->first();
+
+        if ($existing !== null) {
+            AiWritableFields::assertWritable($existing);
+            $this->snapshotRevision->execute($existing);
+        }
+
         $content = CityContent::updateOrCreate(
             ['city_id' => $city->id, 'locale' => self::LOCALE, 'section' => $section->value],
             ['body' => $body, 'status' => $status, 'generation_id' => $job->id, 'published_at' => null],
         );
+
+        AiWritableFields::assertWritable($content);
 
         // Repartir d'une trace propre à chaque (re)génération plutôt que
         // d'accumuler des liens vers des faits d'une précédente exécution.

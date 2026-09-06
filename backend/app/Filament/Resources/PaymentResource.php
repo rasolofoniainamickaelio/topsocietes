@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Domain\Billing\Actions\RefundPaymentAction;
 use App\Domain\Billing\Enums\PaymentStatus;
 use App\Domain\Billing\Models\Payment;
 use App\Enums\PermissionName;
 use App\Filament\Resources\PaymentResource\Pages;
 use App\Filament\Support\EnumOptions;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use RuntimeException;
 
 class PaymentResource extends Resource
 {
@@ -55,6 +59,25 @@ class PaymentResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('status')->options(EnumOptions::for(PaymentStatus::class)),
+            ])
+            ->actions([
+                Action::make('refund')
+                    ->label('Rembourser')
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->color('danger')
+                    ->visible(fn (Payment $record): bool => $record->status === PaymentStatus::Succeeded
+                        && auth()->user()?->can(PermissionName::BillingManage->value))
+                    ->requiresConfirmation()
+                    ->modalDescription('Rembourse ce paiement via Stripe. Action irréversible.')
+                    ->action(function (Payment $record, RefundPaymentAction $action): void {
+                        try {
+                            $action->execute($record);
+
+                            Notification::make()->title('Paiement remboursé')->success()->send();
+                        } catch (RuntimeException $e) {
+                            Notification::make()->title('Remboursement impossible')->body($e->getMessage())->danger()->send();
+                        }
+                    }),
             ])
             ->defaultSort('created_at', 'desc');
     }

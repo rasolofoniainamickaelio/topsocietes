@@ -74,3 +74,26 @@ it('ignores short 1-2 digit numbers to avoid noise', function (): void {
 
     expect($report->passed)->toBeTrue();
 });
+
+it('rejects a named entity (e.g. a fabricated director name) absent from the facts', function (): void {
+    $facts = new Collection([Fact::factory()->make(['key' => 'population', 'value' => '500716'])]);
+
+    $report = app(ValidateGenerationOutputAction::class)->execute(
+        "L'entreprise a été fondée par Jean Dupont en personne.",
+        $facts,
+    );
+
+    expect($report->passed)->toBeFalse()
+        ->and(collect($report->issues)->contains(fn (string $issue) => str_contains($issue, 'Jean Dupont')))->toBeTrue();
+});
+
+it('does not flag a single capitalized word alone, only sourced multi-word entities', function (): void {
+    $facts = new Collection([Fact::factory()->make(['key' => 'population', 'value' => '500716'])]);
+
+    $report = app(ValidateGenerationOutputAction::class)->execute(
+        'Lyon compte 500716 habitants.',
+        $facts,
+    );
+
+    expect($report->passed)->toBeTrue();
+});

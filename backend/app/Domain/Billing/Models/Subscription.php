@@ -14,6 +14,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property SubscriptionStatus $status
+ */
 class Subscription extends Model
 {
     /** @use HasFactory<SubscriptionFactory> */

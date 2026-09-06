@@ -10,6 +10,7 @@ use App\Domain\Content\Enums\ContentSection;
 use App\Domain\Content\Enums\ContentSectionScope;
 use App\Domain\Content\Enums\ContentStatus;
 use App\Domain\Content\Models\CityContent;
+use App\Domain\Content\Models\ContentRevision;
 use App\Domain\Content\Models\ContentSourceLink;
 use App\Domain\Content\Models\Fact;
 use App\Domain\Geo\Models\City;
@@ -96,6 +97,35 @@ it('rejects when the model declines with INSUFFICIENT_DATA, writing no content',
 
     expect($job->status)->toBe(GenerationStatus::Rejected);
     expect(CityContent::query()->where('city_id', $this->city->id)->exists())->toBeFalse();
+});
+
+it('snapshots the previous content as a revision before overwriting it, but not on first generation', function (): void {
+    Fact::factory()->for($this->city, 'subject')->create(['key' => 'population', 'value' => '500716']);
+
+    // Deux réponses distinctes pour le même endpoint : une séquence, jamais
+    // deux `Http::fake()` — le second écraserait/empilerait sur le premier
+    // stub plutôt que de le remplacer pour le second appel.
+    Http::fakeSequence('*/chat/completions')
+        ->push([
+            'choices' => [['message' => ['content' => 'Lyon compte 500716 habitants.']]],
+            'usage' => ['prompt_tokens' => 80, 'completion_tokens' => 20],
+        ], 200)
+        ->push([
+            'choices' => [['message' => ['content' => 'Lyon compte 500716 habitants, texte mis à jour.']]],
+            'usage' => ['prompt_tokens' => 80, 'completion_tokens' => 20],
+        ], 200);
+
+    app(GenerateCityContentAction::class)->execute($this->city, ContentSection::History);
+
+    expect(ContentRevision::query()->count())->toBe(0);
+
+    app(GenerateCityContentAction::class)->execute($this->city, ContentSection::History);
+
+    $content = CityContent::query()->where('city_id', $this->city->id)->where('section', 'history')->firstOrFail();
+    $revision = ContentRevision::query()->where('content_type', $content->getMorphClass())->where('content_id', $content->id)->firstOrFail();
+
+    expect($revision->body)->toBe('Lyon compte 500716 habitants.')
+        ->and($content->body)->toBe('Lyon compte 500716 habitants, texte mis à jour.');
 });
 
 it('marks the job Failed on a provider error, without throwing', function (): void {

@@ -29,6 +29,7 @@ class ImportBatchFactory extends Factory
             'created_count' => 0,
             'updated_count' => 0,
             'skipped_count' => 0,
+            'duplicate_count' => 0,
             'error_count' => 0,
             'status' => ImportStatus::Pending,
             'checkpoint' => null,

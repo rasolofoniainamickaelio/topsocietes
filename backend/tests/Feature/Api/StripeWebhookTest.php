@@ -12,6 +12,7 @@ use App\Domain\Billing\Models\ContactVisibilityEvent;
 use App\Domain\Billing\Models\Payment;
 use App\Domain\Billing\Models\Plan;
 use App\Domain\Billing\Models\Subscription;
+use App\Domain\Company\Enums\ContactVisibility;
 use App\Domain\Company\Models\Company;
 use App\Domain\Company\Models\CompanyContact;
 use App\Models\User;
@@ -26,9 +27,9 @@ it('activates a subscription and unmasks contacts on checkout completed', functi
     $company = Company::factory()->create();
     $user = User::factory()->create();
     $plan = Plan::factory()->create();
-    $contact = CompanyContact::factory()->for($company)->create();
+    $contact = CompanyContact::factory()->for($company)->create(['visibility' => ContactVisibility::Hidden]);
 
-    (new HandleStripeWebhookAction)->execute('checkout.session.completed', [
+    app(HandleStripeWebhookAction::class)->execute('checkout.session.completed', [
         'subscription' => 'sub_123',
         'payment_intent' => 'pi_123',
         'amount_total' => 1900,
@@ -56,6 +57,8 @@ it('activates a subscription and unmasks contacts on checkout completed', functi
     expect($event->action)->toBe(ContactVisibilityAction::Unmasked)
         ->and($event->triggered_by)->toBe(ContactVisibilityTrigger::SubscriptionActivated)
         ->and($event->subscription_id)->toBe($subscription->id);
+
+    expect($contact->fresh()->visibility)->toBe(ContactVisibility::Visible);
 });
 
 it('is idempotent when replaying the same checkout completed event', function (): void {
@@ -75,7 +78,7 @@ it('is idempotent when replaying the same checkout completed event', function ()
         ],
     ];
 
-    $action = new HandleStripeWebhookAction;
+    $action = app(HandleStripeWebhookAction::class);
     $action->execute('checkout.session.completed', $payload);
     $action->execute('checkout.session.completed', $payload);
 
@@ -89,7 +92,7 @@ it('cancels a subscription on customer.subscription.deleted', function (): void 
         'status' => SubscriptionStatus::Active,
     ]);
 
-    (new HandleStripeWebhookAction)->execute('customer.subscription.deleted', [
+    app(HandleStripeWebhookAction::class)->execute('customer.subscription.deleted', [
         'id' => 'sub_123',
     ]);
 
@@ -104,17 +107,50 @@ it('marks a subscription past due on invoice.payment_failed', function (): void 
         'status' => SubscriptionStatus::Active,
     ]);
 
-    (new HandleStripeWebhookAction)->execute('invoice.payment_failed', [
+    app(HandleStripeWebhookAction::class)->execute('invoice.payment_failed', [
         'subscription' => 'sub_123',
     ]);
 
     expect($subscription->fresh()->status)->toBe(SubscriptionStatus::PastDue);
 });
 
+it('records the renewed period end and recovers from past_due on customer.subscription.updated', function (): void {
+    $subscription = Subscription::factory()->create([
+        'provider' => PaymentProvider::Stripe,
+        'provider_subscription_id' => 'sub_123',
+        'status' => SubscriptionStatus::PastDue,
+        'current_period_end' => now()->subDay(),
+    ]);
+
+    $newPeriodEnd = now()->addMonth()->startOfSecond();
+
+    app(HandleStripeWebhookAction::class)->execute('customer.subscription.updated', [
+        'id' => 'sub_123',
+        'status' => 'active',
+        'current_period_end' => $newPeriodEnd->timestamp,
+    ]);
+
+    $subscription->refresh();
+    expect($subscription->status)->toBe(SubscriptionStatus::Active)
+        ->and($subscription->current_period_end->equalTo($newPeriodEnd))->toBeTrue();
+});
+
+it('ignores customer.subscription.updated for an unknown subscription id', function (): void {
+    $countBefore = Subscription::query()->count();
+
+    app(HandleStripeWebhookAction::class)->execute('customer.subscription.updated', [
+        'id' => 'sub_unknown',
+        'status' => 'active',
+        'current_period_end' => now()->timestamp,
+    ]);
+
+    expect(Subscription::query()->count())->toBe($countBefore);
+});
+
 it('ignores an unknown event type', function (): void {
     $countBefore = Subscription::query()->count();
 
-    (new HandleStripeWebhookAction)->execute('some.unknown.event', ['foo' => 'bar']);
+    app(HandleStripeWebhookAction::class)->execute('some.unknown.event', ['foo' => 'bar']);
 
     expect(Subscription::query()->count())->toBe($countBefore);
 });

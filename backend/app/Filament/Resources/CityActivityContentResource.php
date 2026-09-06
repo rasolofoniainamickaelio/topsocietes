@@ -9,7 +9,10 @@ use App\Domain\Content\Enums\ContentStatus;
 use App\Domain\Content\Models\CityActivityContent;
 use App\Enums\PermissionName;
 use App\Filament\Resources\CityActivityContentResource\Pages;
+use App\Filament\Support\ApproveContentAction;
 use App\Filament\Support\EnumOptions;
+use App\Filament\Support\PublishContentAction;
+use App\Filament\Support\RejectContentAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -78,6 +81,7 @@ class CityActivityContentResource extends Resource
             ->filters([
                 SelectFilter::make('status')->options(EnumOptions::for(ContentStatus::class)),
             ])
+            ->actions([PublishContentAction::make(), ApproveContentAction::make(), RejectContentAction::make()])
             ->defaultSort('created_at', 'desc');
     }
 

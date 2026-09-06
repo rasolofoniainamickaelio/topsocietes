@@ -66,6 +66,13 @@ class CompanyResource extends JsonResource
             ...($this->relationLoaded('contacts') && $this->contacts->isNotEmpty()
                 ? ['contacts' => CompanyContactResource::collection($this->contacts)]
                 : []),
+            // Registre de blocs (CLAUDE.md §4) : `page_blocks` est un
+            // attribut transitoire posé par `CompanyShowController`, jamais
+            // une colonne ou une relation — absent (donc ignoré ici) sur
+            // toute autre utilisation de cette Resource.
+            ...($this->offsetExists('page_blocks')
+                ? ['blocks' => ContentBlockResource::collection($this->resource->getAttribute('page_blocks'))]
+                : []),
         ];
     }
 }

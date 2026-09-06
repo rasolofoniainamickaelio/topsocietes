@@ -12,6 +12,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property CompanyClaimStatus $status
+ */
 class CompanyClaim extends Model
 {
     /** @use HasFactory<CompanyClaimFactory> */

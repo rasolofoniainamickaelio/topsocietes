@@ -17,6 +17,20 @@ namespace App\Domain\Ai\Support;
  */
 final class ForbiddenTopics
 {
+    /**
+     * Préfixée à CHAQUE prompt système avant l'appel au fournisseur — jamais
+     * seulement présente dans l'`AiPrompt` éditable en back-office, pour
+     * qu'aucune édition (même bien intentionnée) ne puisse faire disparaître
+     * la consigne (CLAUDE.md §6.7). `AiPrompt.system_prompt` reste éditable
+     * pour le TON et le CONTENU de la section, jamais pour cette garde.
+     */
+    public const SYSTEM_GUARDRAIL = <<<'PROMPT'
+        Règles impératives, non négociables :
+        - N'utilise QUE les faits fournis ci-dessous. N'invente jamais un chiffre, un nom, une date ou une affirmation absente de ces faits.
+        - N'aborde JAMAIS : chiffre d'affaires, solvabilité, litiges, certifications, avis clients, effectifs, réputation, dirigeants, clients, historique d'une entreprise précise.
+        - Si les faits fournis sont insuffisants pour rédiger ce contenu sans enfreindre ces règles, réponds exactement : INSUFFICIENT_DATA
+        PROMPT;
+
     /** @var array<string, array<int, string>> */
     private const KEYWORDS = [
         'chiffres financiers' => ["chiffre d'affaires", 'chiffre daffaires', 'bénéfice', 'résultat net', 'rentabilité', 'marge bénéficiaire'],

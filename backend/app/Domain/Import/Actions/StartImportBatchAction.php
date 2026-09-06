@@ -12,8 +12,8 @@ use App\Domain\Import\Models\ImportBatch;
 use App\Domain\Import\Models\ImportMapping;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
-use SimpleXMLElement;
 use SplFileObject;
+use XMLReader;
 
 /**
  * Crée le lot d'import et dispatch le premier morceau de traitement.
@@ -46,17 +46,54 @@ class StartImportBatchAction
 
     private function countRows(string $absolutePath, ImportFormat $format): int
     {
+        // Comptage en flux, jamais un chargement complet du fichier : un
+        // fichier JSON Lines / XML volumineux ne doit jamais être décodé
+        // entièrement rien que pour connaître son nombre de lignes.
         if ($format === ImportFormat::Json) {
-            /** @var array<int, mixed> $rows */
-            $rows = json_decode(file_get_contents($absolutePath) ?: '[]', true) ?? [];
+            $handle = fopen($absolutePath, 'rb');
 
-            return count($rows);
+            if ($handle === false) {
+                return 0;
+            }
+
+            $count = 0;
+
+            try {
+                while (($line = fgets($handle)) !== false) {
+                    if (trim($line) !== '') {
+                        $count++;
+                    }
+                }
+            } finally {
+                fclose($handle);
+            }
+
+            return $count;
         }
 
         if ($format === ImportFormat::Xml) {
-            $xml = @simplexml_load_file($absolutePath);
+            $reader = new XMLReader;
 
-            return $xml instanceof SimpleXMLElement ? count($xml->children()) : 0;
+            if (! $reader->open($absolutePath, flags: LIBXML_NONET)) {
+                return 0;
+            }
+
+            $reader->setParserProperty(XMLReader::LOADDTD, false);
+            $reader->setParserProperty(XMLReader::SUBST_ENTITIES, false);
+
+            $count = 0;
+
+            try {
+                while ($reader->read()) {
+                    if ($reader->nodeType === XMLReader::ELEMENT && $reader->depth === 1) {
+                        $count++;
+                    }
+                }
+            } finally {
+                $reader->close();
+            }
+
+            return $count;
         }
 
         $file = new SplFileObject($absolutePath);

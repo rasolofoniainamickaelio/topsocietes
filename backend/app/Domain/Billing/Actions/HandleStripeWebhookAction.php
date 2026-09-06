@@ -9,10 +9,10 @@ use App\Domain\Billing\Enums\ContactVisibilityTrigger;
 use App\Domain\Billing\Enums\PaymentProvider;
 use App\Domain\Billing\Enums\PaymentStatus;
 use App\Domain\Billing\Enums\SubscriptionStatus;
-use App\Domain\Billing\Models\ContactVisibilityEvent;
 use App\Domain\Billing\Models\Payment;
 use App\Domain\Billing\Models\Subscription;
-use App\Domain\Company\Models\Company;
+use App\Domain\Company\Enums\ContactVisibility;
+use Carbon\Carbon;
 
 /**
  * Prend un type d'événement + payload déjà parsés (pas de dépendance au
@@ -21,6 +21,8 @@ use App\Domain\Company\Models\Company;
  */
 class HandleStripeWebhookAction
 {
+    public function __construct(private readonly SetContactsVisibilityAction $setVisibility) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -28,6 +30,7 @@ class HandleStripeWebhookAction
     {
         match ($eventType) {
             'checkout.session.completed' => $this->handleCheckoutCompleted($data),
+            'customer.subscription.updated' => $this->handleSubscriptionUpdated($data),
             'customer.subscription.deleted' => $this->handleSubscriptionDeleted($data),
             'invoice.payment_failed' => $this->handlePaymentFailed($data),
             default => null,
@@ -75,22 +78,47 @@ class HandleStripeWebhookAction
             'payload' => $data,
         ]);
 
-        $company = Company::query()->find($companyId);
+        // C'est ici, et nulle part ailleurs à l'activation, que les
+        // coordonnées doivent réellement passer visibles (Phase 07, "cycle
+        // complet ... paiement → visible").
+        $this->setVisibility->execute(
+            companyId: $companyId,
+            visibility: ContactVisibility::Visible,
+            action: ContactVisibilityAction::Unmasked,
+            trigger: ContactVisibilityTrigger::SubscriptionActivated,
+            subscriptionId: $subscription->id,
+            userId: $userId,
+        );
+    }
 
-        if ($company === null) {
+    /**
+     * Stripe envoie cet événement à la création ET à chaque renouvellement :
+     * c'est la source fiable de `current_period_end` (jamais disponible sur
+     * `checkout.session.completed`), et l'occasion de sortir une
+     * souscription de `PastDue` une fois le paiement de reprise accepté.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function handleSubscriptionUpdated(array $data): void
+    {
+        $subscription = Subscription::query()
+            ->where('provider', PaymentProvider::Stripe)
+            ->where('provider_subscription_id', $data['id'] ?? null)
+            ->first();
+
+        if ($subscription === null) {
             return;
         }
 
-        foreach ($company->contacts as $contact) {
-            ContactVisibilityEvent::query()->create([
-                'company_id' => $companyId,
-                'contact_id' => $contact->id,
-                'action' => ContactVisibilityAction::Unmasked,
-                'triggered_by' => ContactVisibilityTrigger::SubscriptionActivated,
-                'subscription_id' => $subscription->id,
-                'user_id' => $userId,
-            ]);
-        }
+        $periodEnd = $data['current_period_end'] ?? null;
+        $stripeStatus = $data['status'] ?? null;
+
+        $subscription->update([
+            'current_period_end' => $periodEnd !== null ? Carbon::createFromTimestamp((int) $periodEnd) : $subscription->current_period_end,
+            'status' => $stripeStatus === 'active' && $subscription->status === SubscriptionStatus::PastDue
+                ? SubscriptionStatus::Active
+                : $subscription->status,
+        ]);
     }
 
     /**

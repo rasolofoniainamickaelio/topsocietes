@@ -5,6 +5,9 @@ declare(strict_types=1);
 use App\Domain\Company\Enums\ContactVisibility;
 use App\Domain\Company\Models\Company;
 use App\Domain\Company\Models\CompanyContact;
+use App\Domain\Content\Enums\ContentStatus;
+use App\Domain\Content\Models\CityContent;
+use App\Domain\Geo\Models\City;
 use App\Domain\Geo\Models\Country;
 use App\Domain\Taxonomy\Models\Activity;
 use App\Domain\Taxonomy\Models\Sector;
@@ -65,6 +68,29 @@ it('includes visible contacts', function (): void {
     $response = $this->getJson("/api/v1/fr/companies/{$company->slug}");
 
     $response->assertOk()->assertJsonPath('data.contacts.0.value', '+33100000000');
+});
+
+it('includes the published city content as a territorial block', function (): void {
+    $country = Country::factory()->create(['subdomain' => 'fr', 'is_active' => true]);
+    $city = City::factory()->for($country)->create();
+    $company = Company::factory()->for($country)->create(['city_id' => $city->id]);
+    CityContent::factory()->for($city)->create([
+        'section' => 'history',
+        'title' => 'Histoire de la ville',
+        'body' => 'Fondée il y a longtemps.',
+        'status' => ContentStatus::Published,
+    ]);
+    CityContent::factory()->for($city)->create([
+        'section' => 'nature',
+        'status' => ContentStatus::Draft,
+    ]);
+
+    $response = $this->getJson("/api/v1/fr/companies/{$company->slug}");
+
+    $response->assertOk()
+        ->assertJsonPath('data.blocks.0.type', 'history')
+        ->assertJsonPath('data.blocks.0.data.body', 'Fondée il y a longtemps.')
+        ->assertJsonCount(1, 'data.blocks');
 });
 
 it('returns 404 for an unknown slug', function (): void {

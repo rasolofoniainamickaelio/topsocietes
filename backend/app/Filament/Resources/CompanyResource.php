@@ -8,6 +8,7 @@ use App\Domain\Company\Enums\CompanyContentStatus;
 use App\Domain\Company\Enums\CompanyStatus;
 use App\Domain\Company\Enums\GeocodingStatus;
 use App\Domain\Company\Models\Company;
+use App\Domain\Geo\Queries\UngeocodableCompaniesQuery;
 use App\Filament\Resources\CompanyResource\Pages;
 use App\Filament\Resources\CompanyResource\RelationManagers\ContactVisibilityEventsRelationManager;
 use App\Filament\Resources\CompanyResource\RelationManagers\NearbyPoisRelationManager;
@@ -21,8 +22,10 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class CompanyResource extends Resource
 {
@@ -67,6 +70,7 @@ class CompanyResource extends Resource
                 TextColumn::make('city.name')->label('Ville')->sortable(),
                 TextColumn::make('activity.public_label')->label('Activité')->toggleable(),
                 TextColumn::make('content_status')->badge()->label('Contenu'),
+                TextColumn::make('geocoding_status')->badge()->label('Géocodage')->sortable(),
                 IconColumn::make('is_indexable')->boolean()->label('Indexable'),
                 TextColumn::make('created_date')->date()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -74,6 +78,11 @@ class CompanyResource extends Resource
                 SelectFilter::make('status')->options(EnumOptions::for(CompanyStatus::class)),
                 SelectFilter::make('content_status')->options(EnumOptions::for(CompanyContentStatus::class)),
                 SelectFilter::make('city')->relationship('city', 'name')->searchable(),
+                SelectFilter::make('geocoding_status')->options(EnumOptions::for(GeocodingStatus::class)),
+                Filter::make('ungeocodable')
+                    ->label('À reprendre (géocodage)')
+                    ->query(fn (Builder $query): Builder => app(UngeocodableCompaniesQuery::class)->apply($query))
+                    ->toggle(),
             ])
             ->defaultSort('legal_name');
     }
