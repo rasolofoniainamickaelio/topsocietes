@@ -40,6 +40,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property-read string|null $location
  * @property CompanyContentStatus $content_status
  * @property GeocodingStatus $geocoding_status
+ * @property-read City|null $city
  */
 #[ObservedBy(CompanyObserver::class)]
 class Company extends Model

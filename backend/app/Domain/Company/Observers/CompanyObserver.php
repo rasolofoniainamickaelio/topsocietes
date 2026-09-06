@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\Company\Observers;
 
+use App\Domain\Company\Actions\BuildCompanyPathAction;
 use App\Domain\Company\Enums\CompanyContentStatus;
 use App\Domain\Company\Models\Company;
 use App\Domain\Geo\Jobs\ComputeCompanyNearbyPoisJob;
 use App\Domain\Geo\Jobs\ResolveCompanyDistrictJob;
+use App\Domain\Geo\Models\City;
+use App\Domain\Seo\Actions\CreateRedirectAction;
+use App\Domain\Seo\Enums\RedirectReason;
 use App\Domain\Seo\Services\InternalLinkingService;
 use Illuminate\Support\Facades\Cache;
 
@@ -21,6 +25,11 @@ use Illuminate\Support\Facades\Cache;
  */
 class CompanyObserver
 {
+    public function __construct(
+        private readonly BuildCompanyPathAction $buildPath,
+        private readonly CreateRedirectAction $createRedirect,
+    ) {}
+
     /**
      * `created` ne déclenche jamais `isDirty()` côté `updated` (c'est un
      * event Eloquent distinct) : sans ce handler, une entreprise créée
@@ -58,5 +67,24 @@ class CompanyObserver
         if ($company->isDirty(['legal_name', 'slug', 'activity_id', 'city_id', 'admin_division_id', 'content_status', 'is_indexable'])) {
             Cache::forget(InternalLinkingService::cacheKey($company));
         }
+
+        // Slug immuable en principe (CLAUDE.md §6.4), mais éditable en
+        // back-office : tout changement crée automatiquement sa 301, plutôt
+        // que de compter sur un geste manuel toujours oublié un jour.
+        if ($company->isDirty('slug')) {
+            $this->redirectOldCompanyPath($company);
+        }
+    }
+
+    private function redirectOldCompanyPath(Company $company): void
+    {
+        $oldCitySlug = $company->isDirty('city_id')
+            ? City::query()->find($company->getOriginal('city_id'))?->slug
+            : null;
+
+        $oldPath = $this->buildPath->execute($company, slugOverride: (string) $company->getOriginal('slug'), citySlugOverride: $oldCitySlug);
+        $newPath = $this->buildPath->execute($company);
+
+        $this->createRedirect->execute($company->country, $oldPath, $newPath, RedirectReason::SlugChange);
     }
 }

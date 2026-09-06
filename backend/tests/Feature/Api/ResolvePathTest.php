@@ -22,6 +22,16 @@ it('resolves an active redirect', function (): void {
         ->assertJsonPath('data.status_code', 301);
 });
 
+it('follows a manually created redirect chain to its final destination, never returning an intermediate hop', function (): void {
+    $country = Country::factory()->create(['subdomain' => 'fr', 'is_active' => true]);
+    Redirect::factory()->for($country)->create(['from_path' => '/a', 'to_path' => '/b']);
+    Redirect::factory()->for($country)->create(['from_path' => '/b', 'to_path' => '/c']);
+
+    $response = $this->getJson('/api/v1/fr/resolve?path=/a');
+
+    $response->assertOk()->assertJsonPath('data.to', '/c');
+});
+
 it('resolves a known route when no redirect matches', function (): void {
     $country = Country::factory()->create(['subdomain' => 'fr', 'is_active' => true]);
     PageRoute::factory()->for($country)->create(['path' => '/villes/paris']);

@@ -13,3 +13,5 @@ uses(RefreshDatabase::class)->in('Feature/Import');
 uses(RefreshDatabase::class)->in('Feature/Content');
 uses(RefreshDatabase::class)->in('Feature/Ai');
 uses(RefreshDatabase::class)->in('Feature/Search');
+uses(RefreshDatabase::class)->in('Feature/Seo');
+uses(RefreshDatabase::class)->in('Feature/Billing');
