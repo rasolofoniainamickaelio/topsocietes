@@ -82,7 +82,9 @@ it('is idempotent when replaying the same checkout completed event', function ()
     $action->execute('checkout.session.completed', $payload);
     $action->execute('checkout.session.completed', $payload);
 
-    expect(Subscription::query()->where('company_id', $company->id)->count())->toBe(1);
+    $subscription = Subscription::query()->where('company_id', $company->id)->firstOrFail();
+    expect(Subscription::query()->where('company_id', $company->id)->count())->toBe(1)
+        ->and(Payment::query()->where('subscription_id', $subscription->id)->count())->toBe(1);
 });
 
 it('cancels a subscription on customer.subscription.deleted', function (): void {

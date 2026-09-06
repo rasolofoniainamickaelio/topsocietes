@@ -67,7 +67,7 @@ class HandleStripeWebhookAction
             ],
         );
 
-        Payment::query()->create([
+        $paymentAttributes = [
             'subscription_id' => $subscription->id,
             'provider' => PaymentProvider::Stripe,
             'provider_payment_id' => $data['payment_intent'] ?? null,
@@ -76,7 +76,23 @@ class HandleStripeWebhookAction
             'status' => PaymentStatus::Succeeded,
             'paid_at' => now(),
             'payload' => $data,
-        ]);
+        ];
+
+        // Stripe redélivre ses webhooks (timeout, réponse non-2xx...) : sans
+        // ce garde-fou, un replay de checkout.session.completed dupliquerait
+        // la ligne Payment. Pas de clé de dédoublonnage fiable si Stripe ne
+        // fournit pas de payment_intent, donc on ne peut protéger que ce cas.
+        if ($paymentAttributes['provider_payment_id'] !== null) {
+            Payment::query()->firstOrCreate(
+                [
+                    'provider' => PaymentProvider::Stripe,
+                    'provider_payment_id' => $paymentAttributes['provider_payment_id'],
+                ],
+                $paymentAttributes,
+            );
+        } else {
+            Payment::query()->create($paymentAttributes);
+        }
 
         // C'est ici, et nulle part ailleurs à l'activation, que les
         // coordonnées doivent réellement passer visibles (Phase 07, "cycle
