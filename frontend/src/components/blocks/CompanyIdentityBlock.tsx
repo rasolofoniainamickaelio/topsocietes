@@ -28,7 +28,7 @@ export function CompanyIdentityBlock({ company }: { company: Company }) {
       {company.trade_name && (
         <p className="mt-1 text-[var(--ink-muted)]">{company.trade_name}</p>
       )}
-      <span className="mt-3 inline-block rounded-[var(--radius-chip)] bg-[var(--surface)] px-2 py-0.5 text-sm text-[var(--ink-muted)] capitalize">
+      <span className="mt-3 inline-block rounded-[var(--radius-chip)] bg-[var(--surface)] px-2 py-0.5 text-sm text-[var(--ink-muted)]">
         {STATUS_LABELS[company.status] ?? company.status}
       </span>
     </header>
