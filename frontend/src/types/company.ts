@@ -18,6 +18,23 @@ export interface Company {
   main_establishment: Establishment | null;
   nearby_pois: NearbyPoi[];
   contacts?: Contact[];
+  blocks?: ContentBlock[];
+}
+
+/**
+ * Contenu territorial/sectoriel mutualisé (quartier, ville, activité,
+ * secteur, croisé ville×activité — Phase 08). `type` correspond aux clés
+ * de `App\Domain\Content\Enums\ContentSection` (backend) ; un type non
+ * reconnu par le registre front doit être ignoré silencieusement
+ * (CLAUDE.md §4), jamais provoquer une erreur de rendu.
+ */
+export interface ContentBlock {
+  type: string;
+  data: {
+    title: string | null;
+    body: string | null;
+    [key: string]: unknown;
+  };
 }
 
 export interface Sector {

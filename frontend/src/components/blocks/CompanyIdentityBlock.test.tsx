@@ -24,11 +24,11 @@ const baseCompany: Company = {
 };
 
 describe("CompanyIdentityBlock", () => {
-  it("shows the legal name and status, but not a trade name when absent", () => {
+  it("shows the legal name and a translated status, but not a trade name when absent", () => {
     render(<CompanyIdentityBlock company={baseCompany} />);
 
     expect(screen.getByText("Acme SAS")).toBeInTheDocument();
-    expect(screen.getByText("active")).toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeInTheDocument();
   });
 
   it("shows the trade name when present", () => {
@@ -37,5 +37,11 @@ describe("CompanyIdentityBlock", () => {
     );
 
     expect(screen.getByText("Acme")).toBeInTheDocument();
+  });
+
+  it("falls back to the raw value for an unrecognized status", () => {
+    render(<CompanyIdentityBlock company={{ ...baseCompany, status: "suspended" }} />);
+
+    expect(screen.getByText("suspended")).toBeInTheDocument();
   });
 });
