@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property array<string, mixed>|null $settings
+ * @property array<string, mixed>|null $url_patterns
  */
 class Country extends Model
 {

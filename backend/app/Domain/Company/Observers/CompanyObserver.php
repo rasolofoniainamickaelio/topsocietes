@@ -8,6 +8,8 @@ use App\Domain\Company\Enums\CompanyContentStatus;
 use App\Domain\Company\Models\Company;
 use App\Domain\Geo\Jobs\ComputeCompanyNearbyPoisJob;
 use App\Domain\Geo\Jobs\ResolveCompanyDistrictJob;
+use App\Domain\Seo\Services\InternalLinkingService;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Déclenche les recalculs géo (Phase 4) en réaction aux changements
@@ -48,6 +50,13 @@ class CompanyObserver
             && $company->is_indexable
         ) {
             ComputeCompanyNearbyPoisJob::dispatch($company);
+        }
+
+        // Maillage interne (Phase 15) : tout champ qui influence un des
+        // groupes de liens invalide le cache — recalculé paresseusement à
+        // la prochaine lecture, jamais de recalcul synchrone ici.
+        if ($company->isDirty(['legal_name', 'slug', 'activity_id', 'city_id', 'admin_division_id', 'content_status', 'is_indexable'])) {
+            Cache::forget(InternalLinkingService::cacheKey($company));
         }
     }
 }

@@ -73,6 +73,12 @@ class CompanyResource extends JsonResource
             ...($this->offsetExists('page_blocks')
                 ? ['blocks' => ContentBlockResource::collection($this->resource->getAttribute('page_blocks'))]
                 : []),
+            // Maillage interne (Phase 15) : `page_links` est un attribut
+            // transitoire posé par `CompanyShowController`, même patron que
+            // `page_blocks` ci-dessus.
+            ...($this->offsetExists('page_links')
+                ? ['links' => $this->resource->getAttribute('page_links')]
+                : []),
         ];
     }
 }
