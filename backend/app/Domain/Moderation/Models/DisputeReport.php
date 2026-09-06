@@ -6,21 +6,27 @@ namespace App\Domain\Moderation\Models;
 
 use App\Domain\Company\Models\Company;
 use App\Domain\Moderation\Enums\DisputeStatus;
+use App\Domain\Moderation\Observers\DisputeReportObserver;
 use App\Models\User;
 use Database\Factories\DisputeReportFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+/** @property DisputeStatus $status */
+#[ObservedBy(DisputeReportObserver::class)]
 class DisputeReport extends Model
 {
     /** @use HasFactory<DisputeReportFactory> */
     use HasFactory;
 
     use LogsActivity;
+    use SoftDeletes;
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -42,6 +48,7 @@ class DisputeReport extends Model
         'internal_note',
         'resolved_at',
         'ip_hash',
+        'anonymized_at',
     ];
 
     protected function casts(): array
@@ -49,6 +56,7 @@ class DisputeReport extends Model
         return [
             'status' => DisputeStatus::class,
             'resolved_at' => 'datetime',
+            'anonymized_at' => 'datetime',
         ];
     }
 

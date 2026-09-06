@@ -16,5 +16,6 @@ class CreateDisputeReportData extends Data
         public readonly string $reporter_name,
         public readonly string $reporter_email,
         public readonly ?string $reporter_phone,
+        public readonly ?string $evidence_path,
     ) {}
 }

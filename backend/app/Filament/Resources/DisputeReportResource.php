@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Domain\Moderation\Actions\ApplyDisputeCorrectionAction;
 use App\Domain\Moderation\Enums\DisputeStatus;
 use App\Domain\Moderation\Models\DisputeReport;
 use App\Filament\Resources\DisputeReportResource\Pages;
@@ -14,10 +15,13 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Throwable;
 
 class DisputeReportResource extends Resource
 {
@@ -59,6 +63,23 @@ class DisputeReportResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('status')->options(EnumOptions::for(DisputeStatus::class)),
+            ])
+            ->actions([
+                Action::make('apply')
+                    ->label('Appliquer la correction')
+                    ->icon('heroicon-o-check-circle')
+                    ->visible(fn (DisputeReport $record): bool => $record->status === DisputeStatus::Accepted
+                        && (auth()->user()?->can('review', $record) ?? false))
+                    ->requiresConfirmation()
+                    ->modalDescription(fn (DisputeReport $record): string => "Écrit « {$record->proposed_value} » dans le champ « {$record->field} » de la fiche entreprise, puis marque la contestation comme appliquée.")
+                    ->action(function (DisputeReport $record, ApplyDisputeCorrectionAction $action): void {
+                        try {
+                            $action->execute($record);
+                            Notification::make()->title('Correction appliquée')->success()->send();
+                        } catch (Throwable $exception) {
+                            Notification::make()->title('Application impossible')->body($exception->getMessage())->danger()->send();
+                        }
+                    }),
             ])
             ->defaultSort('created_at', 'desc');
     }

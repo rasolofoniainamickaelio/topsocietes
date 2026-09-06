@@ -9,12 +9,15 @@ use Database\Factories\DisputeEventFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /** Historique d'une contestation. Pas de colonne `updated_at` : immuable. */
 class DisputeEvent extends Model
 {
     /** @use HasFactory<DisputeEventFactory> */
     use HasFactory;
+
+    use SoftDeletes;
 
     public const UPDATED_AT = null;
 

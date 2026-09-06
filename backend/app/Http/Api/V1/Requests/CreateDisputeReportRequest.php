@@ -26,6 +26,10 @@ class CreateDisputeReportRequest extends FormRequest
             'reporter_name' => ['required', 'string', 'max:255'],
             'reporter_email' => ['required', 'email', 'max:255'],
             'reporter_phone' => ['nullable', 'string', 'max:50'],
+            // Justificatif optionnel (Phase 22) : validation mime/taille
+            // uniquement, jamais d'antivirus (hors périmètre), stocké sur le
+            // disque `local` (non public) — jamais exposé par URL directe.
+            'evidence' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ];
     }
 }

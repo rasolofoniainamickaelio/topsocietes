@@ -28,12 +28,19 @@ class DisputeReportStoreController extends Controller
             throw new ModelNotFoundException;
         }
 
-        $action->execute(
+        $validated = $request->validated();
+        unset($validated['evidence']);
+
+        $evidencePath = $request->hasFile('evidence')
+            ? $request->file('evidence')->store('disputes/evidence', 'local')
+            : null;
+
+        $dispute = $action->execute(
             $company,
-            CreateDisputeReportData::from($request->validated()),
+            CreateDisputeReportData::from([...$validated, 'evidence_path' => $evidencePath]),
             hash('sha256', (string) $request->ip()),
         );
 
-        return response()->json(['data' => ['status' => 'submitted']], 201);
+        return response()->json(['data' => ['status' => 'submitted', 'tracking_number' => $dispute->id]], 201);
     }
 }

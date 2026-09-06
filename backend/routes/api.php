@@ -22,6 +22,7 @@ use App\Http\Api\V1\Controllers\CompanySearchController;
 use App\Http\Api\V1\Controllers\CompanyShowController;
 use App\Http\Api\V1\Controllers\CountryController;
 use App\Http\Api\V1\Controllers\DisputeReportStoreController;
+use App\Http\Api\V1\Controllers\DisputeReportTrackController;
 use App\Http\Api\V1\Controllers\DistrictShowController;
 use App\Http\Api\V1\Controllers\PlanIndexController;
 use App\Http\Api\V1\Controllers\ResolvePathController;
@@ -80,6 +81,9 @@ Route::prefix('v1/{country}')->middleware(ResolveCountry::class)->group(function
     Route::get('/companies', CompanyIndexController::class);
     Route::get('/companies/{slug}', CompanyShowController::class);
     Route::post('/companies/{slug}/disputes', DisputeReportStoreController::class)->middleware('throttle:5,1');
+    // Suivi public, sans authentification : le numéro de suivi (l'id de la
+    // contestation) fait office de jeton — voir DisputeSubmittedNotification.
+    Route::get('/companies/{slug}/disputes/{dispute}', DisputeReportTrackController::class)->middleware('throttle:30,1');
     Route::get('/ad-slots/{code}/campaigns', AdSlotCampaignsController::class);
     Route::get('/service-links', ServiceLinkIndexController::class);
     Route::get('/resolve', ResolvePathController::class);

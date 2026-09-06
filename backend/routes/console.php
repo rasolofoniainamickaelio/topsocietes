@@ -46,3 +46,8 @@ Schedule::command('subscriptions:expire')->daily();
 // périodique ne fait que reconstruire les fichiers XML segmentés à partir
 // de leur état courant. Quotidien, en dehors des heures de forte charge.
 Schedule::command('sitemaps:generate')->dailyAt('04:00');
+
+// RGPD (Phase 22) : purge mensuelle des données personnelles des
+// signalements clos depuis plus de 24 mois. Mensuel : ce n'est pas une
+// opération sensible au délai, contrairement au (dé)masquage de contacts.
+Schedule::command('disputes:anonymize')->monthly();
