@@ -1,6 +1,35 @@
 # Déploiement natif — TOPsocietes.com
 
-Installation native sur VPS Ubuntu (Nginx, PHP-FPM, PM2, Supervisor) — Docker interdit (CLAUDE.md §1). Ce document est rédigé au fil des phases ; seule la partie files de tâches / workers est couverte pour l'instant.
+Installation native sur VPS Ubuntu (Nginx, PHP-FPM, PM2, Supervisor) — Docker interdit (CLAUDE.md §1). Ce document est rédigé au fil des phases ; seules les parties files de tâches/workers et blocage préprod sont couvertes pour l'instant.
+
+## Préproduction — bloquer les robots (Phase 18, point critique)
+
+Le volet applicatif est déjà en place dans le code (`RobotsController` côté backend, `middleware.ts` côté frontend) : dès que `APP_ENV` n'est pas `production`, `robots.txt` renvoie `Disallow: /` et toute réponse frontend porte `X-Robots-Tag: noindex, nofollow`. Ça suppose deux choses à faire une fois, manuellement, sur le VPS de préprod (CLAUDE.md §9 — configuration serveur, ne jamais automatiser sans validation) :
+
+1. **Définir `APP_ENV` hors production** dans les `.env` réels de préprod (backend ET frontend) :
+   ```
+   # backend/.env et frontend/.env, sur le VPS de préprod uniquement
+   APP_ENV=preprod
+   ```
+
+2. **Auth HTTP basique sur le vhost Nginx de préprod** — filet de sécurité en plus du noindex applicatif, seule protection réelle contre un accès direct (un moteur de recherche ignore parfois `robots.txt`/`X-Robots-Tag`) :
+   ```bash
+   # génère le fichier de mots de passe (une seule fois)
+   sudo apt install apache2-utils   # fournit htpasswd
+   sudo htpasswd -c /etc/nginx/.htpasswd-preprod <utilisateur>
+   ```
+   ```nginx
+   # /etc/nginx/sites-available/topsocietes-preprod (vhost préprod uniquement — jamais sur le vhost production)
+   server {
+       # ... reste de la configuration du vhost préprod ...
+
+       auth_basic "Préproduction — accès restreint";
+       auth_basic_user_file /etc/nginx/.htpasswd-preprod;
+   }
+   ```
+   ```bash
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
 
 ## Files de tâches et workers (queues / Horizon)
 

@@ -17,6 +17,14 @@ class RobotsController extends Controller
 {
     public function __invoke(Country $resolvedCountry): Response
     {
+        // Garde-fou préprod (Phase 18, volet applicatif) : bloque
+        // inconditionnellement l'indexation hors production, avant même de
+        // regarder le pays. Le volet infra (auth HTTP sur le vhost préprod)
+        // reste à faire côté serveur (CLAUDE.md §9, hors périmètre ici).
+        if (config('app.env') !== 'production') {
+            return response("User-agent: *\nDisallow: /\n", 200)->header('Content-Type', 'text/plain');
+        }
+
         $baseDomain = (string) config('services.frontend.base_domain');
         $origin = "https://{$resolvedCountry->subdomain}.{$baseDomain}";
 

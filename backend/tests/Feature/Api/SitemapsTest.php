@@ -45,9 +45,23 @@ it('returns 404 for an unknown shard', function (): void {
     $response->assertNotFound();
 });
 
-it('declares the sitemap index in robots.txt', function (): void {
+it('declares the sitemap index in robots.txt in production', function (): void {
+    // `phpunit.xml` force APP_ENV=testing pour toute la suite (comportement
+    // Laravel standard) — le contenu "production" du robots.txt doit donc
+    // être testé sous un `app.env` explicitement forcé, sinon c'est le
+    // garde-fou préprod ci-dessous qui s'applique par défaut.
+    config(['app.env' => 'production']);
+
     $response = $this->get('/api/v1/fr/robots.txt');
 
     $response->assertOk()
         ->assertSee('Sitemap: https://fr.topsocietes.com/v1/fr/sitemap.xml', false);
+});
+
+it('blocks all robots outside production regardless of country', function (): void {
+    $response = $this->get('/api/v1/fr/robots.txt');
+
+    $response->assertOk()
+        ->assertSee('Disallow: /', false)
+        ->assertDontSee('Sitemap:', false);
 });
