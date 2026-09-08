@@ -25,6 +25,37 @@ export interface Company {
    * que de masquer la page à tort.
    */
   is_indexable?: boolean;
+  links?: CompanyLinks;
+}
+
+/**
+ * Miroir de `App\Domain\Seo\Data\InternalLinkData` (backend, Phase 15).
+ * `type` correspond à `App\Domain\Seo\Enums\PageType` — les clés attendues
+ * dans `params` dépendent de `type` (`slug` pour company/city/district/
+ * admin_division, `citySlug`+`activitySlug` pour activity_city, `path`
+ * pour une page éditoriale fixe).
+ */
+export interface InternalLink {
+  type: string;
+  label: string;
+  params: Record<string, string>;
+}
+
+/**
+ * Miroir de `App\Domain\Seo\Data\CompanyLinksData` (backend). Un groupe
+ * absent (tableau vide / `null`) signifie qu'il n'y a rien de pertinent à
+ * proposer, jamais une erreur (CLAUDE.md §6.5).
+ */
+export interface CompanyLinks {
+  sameTradeInCity: InternalLink[];
+  nearby: InternalLink[];
+  activityInCity: InternalLink | null;
+  activityInNeighborCities: InternalLink[];
+  department: InternalLink | null;
+  region: InternalLink | null;
+  country: InternalLink | null;
+  relatedActivities: InternalLink[];
+  companyCreation: InternalLink | null;
 }
 
 /**

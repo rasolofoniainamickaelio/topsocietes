@@ -11,6 +11,7 @@ import { CompanyAddressBlock } from "@/components/blocks/CompanyAddressBlock";
 import { CompanyAboutBlock } from "@/components/blocks/CompanyAboutBlock";
 import { CompanyContactBlock } from "@/components/blocks/CompanyContactBlock";
 import { CompanyProximityBlock } from "@/components/blocks/CompanyProximityBlock";
+import { CompanyUsefulLinksBlock } from "@/components/blocks/CompanyUsefulLinksBlock";
 import { CompanyDisputeBlock } from "@/components/blocks/CompanyDisputeBlock";
 import { ContentBlock } from "@/components/blocks/ContentBlock";
 import { AdSlot } from "@/components/ui/AdSlot";
@@ -92,6 +93,8 @@ export default async function CompanyPage({
         {contentBlocks.map((block, index) => (
           <ContentBlock key={`${block.type}-${index}`} block={block} />
         ))}
+
+        <CompanyUsefulLinksBlock company={company} />
 
         <AdSlot label={AD_CREATE_COMPANY} className="lg:hidden" />
 

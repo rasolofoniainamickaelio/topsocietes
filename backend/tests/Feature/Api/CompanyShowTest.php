@@ -5,7 +5,9 @@ declare(strict_types=1);
 use App\Domain\Company\Enums\ContactVisibility;
 use App\Domain\Company\Models\Company;
 use App\Domain\Company\Models\CompanyContact;
+use App\Domain\Company\Models\Establishment;
 use App\Domain\Content\Enums\ContentStatus;
+use App\Domain\Content\Models\ActivityContent;
 use App\Domain\Content\Models\CityContent;
 use App\Domain\Geo\Models\City;
 use App\Domain\Geo\Models\Country;
@@ -91,6 +93,71 @@ it('includes the published city content as a territorial block', function (): vo
         ->assertJsonPath('data.blocks.0.type', 'history')
         ->assertJsonPath('data.blocks.0.data.body', 'Fondée il y a longtemps.')
         ->assertJsonCount(1, 'data.blocks');
+});
+
+it('includes published nature and specialty city content as territorial blocks', function (): void {
+    $country = Country::factory()->create(['subdomain' => 'fr', 'is_active' => true]);
+    $city = City::factory()->for($country)->create();
+    $company = Company::factory()->for($country)->create(['city_id' => $city->id]);
+    CityContent::factory()->for($city)->create([
+        'section' => 'nature',
+        'title' => 'Le parc urbain',
+        'body' => 'Un poumon vert au cœur de la ville.',
+        'status' => ContentStatus::Published,
+    ]);
+    CityContent::factory()->for($city)->create([
+        'section' => 'specialty',
+        'title' => 'La poterie locale',
+        'body' => 'Un savoir-faire transmis depuis des générations.',
+        'status' => ContentStatus::Published,
+    ]);
+
+    $response = $this->getJson("/api/v1/fr/companies/{$company->slug}");
+
+    $response->assertOk()->assertJsonCount(2, 'data.blocks');
+
+    $types = collect($response->json('data.blocks'))->pluck('type');
+    expect($types)->toContain('nature', 'specialty');
+});
+
+it('includes published faq content for the company activity', function (): void {
+    $country = Country::factory()->create(['subdomain' => 'fr', 'is_active' => true]);
+    $activity = Activity::factory()->create(['public_label' => 'Transport urbain']);
+    $company = Company::factory()->for($country)->create(['activity_id' => $activity->id]);
+    ActivityContent::factory()->create([
+        'activity_id' => $activity->id,
+        'country_id' => null,
+        'section' => 'faq',
+        'title' => 'Questions fréquentes',
+        'body' => 'Quelles sont les horaires ?',
+        'status' => ContentStatus::Published,
+    ]);
+
+    $response = $this->getJson("/api/v1/fr/companies/{$company->slug}");
+
+    $response->assertOk()
+        ->assertJsonPath('data.blocks.0.type', 'faq')
+        ->assertJsonPath('data.blocks.0.data.body', 'Quelles sont les horaires ?');
+});
+
+it('includes the main establishment address', function (): void {
+    $country = Country::factory()->create(['subdomain' => 'fr', 'is_active' => true]);
+    $city = City::factory()->for($country)->create(['name' => 'Marrakech']);
+    $company = Company::factory()->for($country)->create(['city_id' => $city->id]);
+    $establishment = Establishment::factory()->for($company)->create([
+        'street_number' => '12',
+        'street_name' => 'Avenue Mohammed V',
+        'postal_code' => '40000',
+        'is_headquarters' => true,
+    ]);
+    $company->update(['main_establishment_id' => $establishment->id]);
+
+    $response = $this->getJson("/api/v1/fr/companies/{$company->slug}");
+
+    $response->assertOk()
+        ->assertJsonPath('data.main_establishment.street_number', '12')
+        ->assertJsonPath('data.main_establishment.street_name', 'Avenue Mohammed V')
+        ->assertJsonPath('data.main_establishment.postal_code', '40000');
 });
 
 it('returns 404 for an unknown slug', function (): void {
