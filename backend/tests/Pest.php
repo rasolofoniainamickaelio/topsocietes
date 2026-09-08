@@ -17,3 +17,4 @@ uses(RefreshDatabase::class)->in('Feature/Ai');
 uses(RefreshDatabase::class)->in('Feature/Search');
 uses(RefreshDatabase::class)->in('Feature/Seo');
 uses(RefreshDatabase::class)->in('Feature/Billing');
+uses(RefreshDatabase::class)->in('Feature/Console');
