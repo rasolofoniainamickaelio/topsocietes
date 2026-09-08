@@ -5,6 +5,7 @@ import type { Company } from "@/types/company";
 
 const baseCompany: Company = {
   slug: "acme",
+  public_id: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
   national_id: "123456789",
   legal_name: "Acme SAS",
   trade_name: null,

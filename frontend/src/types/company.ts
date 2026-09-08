@@ -1,6 +1,7 @@
 /** Miroir de `App\Http\Api\V1\Resources\CompanyResource` (backend). */
 export interface Company {
   slug: string;
+  public_id: string;
   national_id: string;
   legal_name: string;
   trade_name: string | null;
@@ -26,6 +27,14 @@ export interface Company {
    */
   is_indexable?: boolean;
   links?: CompanyLinks;
+  /**
+   * Chemin définitif de la fiche (Phase 16, `BuildCompanyPathAction`
+   * côté backend) — présent dès que la fiche est chargée via
+   * `CompanyShowController`/`CompanyShowByIdController`, marqué optionnel
+   * ici par cohérence avec `blocks`/`links`/`is_indexable` ci-dessus (même
+   * mécanisme d'attribut transitoire côté backend).
+   */
+  path?: string;
 }
 
 /**
@@ -33,12 +42,19 @@ export interface Company {
  * `type` correspond à `App\Domain\Seo\Enums\PageType` — les clés attendues
  * dans `params` dépendent de `type` (`slug` pour company/city/district/
  * admin_division, `citySlug`+`activitySlug` pour activity_city, `path`
- * pour une page éditoriale fixe).
+ * dans `params` pour une page éditoriale fixe — à ne pas confondre avec le
+ * champ `path` ci-dessous).
  */
 export interface InternalLink {
   type: string;
   label: string;
   params: Record<string, string>;
+  /**
+   * Chemin déjà construit (Phase 16) pour les types de page qui ont une
+   * route servie par le frontend — `null` sinon (CLAUDE.md §6.5, jamais un
+   * lien cassé).
+   */
+  path: string | null;
 }
 
 /**

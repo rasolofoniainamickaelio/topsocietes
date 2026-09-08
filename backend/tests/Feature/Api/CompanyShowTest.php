@@ -20,7 +20,8 @@ it('returns the full company payload including identity, legal, geo and sector f
     $activity = Activity::factory()->create(['public_label' => 'Transport urbain']);
     $activity->sectors()->attach($sector);
 
-    $company = Company::factory()->for($country)->create([
+    $city = City::factory()->for($country)->create();
+    $company = Company::factory()->for($country)->for($city, 'city')->create([
         'national_id' => '123456789',
         'legal_form_code' => '5710',
         'legal_form_label' => 'SAS',
@@ -34,6 +35,8 @@ it('returns the full company payload including identity, legal, geo and sector f
         ->assertJsonPath('data.legal_form_label', 'SAS')
         ->assertJsonPath('data.activity.label', 'Transport urbain')
         ->assertJsonPath('data.activity.sectors.0.name', 'Transport')
+        ->assertJsonPath('data.public_id', $company->public_id)
+        ->assertJsonPath('data.path', "/{$city->slug}/{$company->slug}-{$company->public_id}")
         ->assertJsonMissingPath('data.contacts');
 });
 

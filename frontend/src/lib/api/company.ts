@@ -28,3 +28,29 @@ export const getCompany = cache(async function getCompany(
     throw error;
   }
 });
+
+/**
+ * Lookup par `id` interne (Phase 16) — jamais depuis une URL publique,
+ * uniquement depuis le catch-all après résolution d'un chemin via
+ * `resolvePath` (`entity_id`, jamais un slug ni un `public_id`). Même
+ * patron que `getCompany` ci-dessus.
+ */
+export const getCompanyById = cache(async function getCompanyById(
+  country: string,
+  id: number,
+): Promise<Company | null> {
+  try {
+    const { data } = await apiFetch<{ data: Company }>(
+      country,
+      `/companies/lookup/${id}`,
+    );
+
+    return data;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+
+    throw error;
+  }
+});

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Seo\Services;
 
+use App\Domain\Company\Actions\BuildCompanyPathAction;
 use App\Domain\Company\Enums\CompanyContentStatus;
 use App\Domain\Company\Models\Company;
 use App\Domain\Geo\Models\AdminDivision;
@@ -31,7 +32,10 @@ class InternalLinkingService
 
     private const CACHE_TTL_SECONDS = 86_400;
 
-    public function __construct(private readonly NearbyCompaniesQuery $nearbyCompanies) {}
+    public function __construct(
+        private readonly NearbyCompaniesQuery $nearbyCompanies,
+        private readonly BuildCompanyPathAction $buildCompanyPath,
+    ) {}
 
     public function forCompany(Company $company): CompanyLinksData
     {
@@ -84,12 +88,14 @@ class InternalLinkingService
             ->where('is_indexable', true)
             ->orderBy('legal_name')
             ->limit(self::MAX_PER_GROUP)
+            ->with('city')
             ->get()
             ->filter(fn (Company $other) => $this->isIndexable(PageType::Company, $other->id))
             ->map(fn (Company $other) => new InternalLinkData(
                 type: PageType::Company,
                 label: $other->legal_name,
                 params: ['slug' => $other->slug],
+                path: $this->buildCompanyPath->execute($other),
             ))
             ->values()
             ->all();
@@ -110,6 +116,7 @@ class InternalLinkingService
                 type: PageType::Company,
                 label: $other->legal_name,
                 params: ['slug' => $other->slug],
+                path: $this->buildCompanyPath->execute($other),
             ))
             ->values()
             ->all();

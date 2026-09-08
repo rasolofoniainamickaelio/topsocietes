@@ -52,6 +52,18 @@ it('lists other published companies of the same trade in the same city, excludin
         ->and($slugs)->not->toContain($this->company->slug);
 });
 
+it('includes the definitive path (Phase 16) on a same-trade-in-city link', function (): void {
+    $sameTrade = Company::factory()->for($this->country)->for($this->city, 'city')->for($this->activity)->create([
+        'content_status' => CompanyContentStatus::Published,
+        'is_indexable' => true,
+    ]);
+
+    $links = app(InternalLinkingService::class)->forCompany($this->company);
+
+    $link = collect($links->sameTradeInCity)->firstWhere('params.slug', $sameTrade->slug);
+    expect($link->path)->toBe("/{$this->city->slug}/{$sameTrade->slug}-{$sameTrade->public_id}");
+});
+
 it('links to a single activity_city page for the current city, not a list of companies', function (): void {
     $links = app(InternalLinkingService::class)->forCompany($this->company);
 

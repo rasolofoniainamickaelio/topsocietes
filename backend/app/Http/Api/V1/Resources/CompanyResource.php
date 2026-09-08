@@ -25,6 +25,7 @@ class CompanyResource extends JsonResource
     {
         return [
             'slug' => $this->slug,
+            'public_id' => $this->public_id,
             'national_id' => $this->national_id,
             'legal_name' => $this->legal_name,
             'trade_name' => $this->trade_name,
@@ -79,14 +80,19 @@ class CompanyResource extends JsonResource
             ...($this->offsetExists('page_links')
                 ? ['links' => $this->resource->getAttribute('page_links')]
                 : []),
+            // Chemin définitif (Phase 16) : `page_path` est un attribut
+            // transitoire posé par `CompanyShowController`/
+            // `CompanyShowByIdController`, même patron que `page_blocks`
+            // ci-dessus — désormais exposé puisque le frontend sert
+            // réellement cette structure d'URL (catch-all + `/resolve`).
+            ...($this->offsetExists('page_path')
+                ? ['path' => $this->resource->getAttribute('page_path')]
+                : []),
             // Décision d'indexabilité (Phase 18) : absente tant que
             // `SyncCompanyPageRouteJob` n'a pas encore tourné pour cette
             // entreprise (page jamais évaluée) — le frontend traite alors
             // la page comme indexable par défaut plutôt que de la masquer
-            // à tort. Le `path` calculé par le backend (structure d'URL
-            // définitive, Phase 16) n'est PAS exposé ici : il ne correspond
-            // à aucune route encore servie par le frontend, l'exposer
-            // produirait un lien canonical cassé.
+            // à tort.
             ...($this->offsetExists('page_route') && $this->resource->getAttribute('page_route') !== null
                 ? ['is_indexable' => $this->resource->getAttribute('page_route')->is_indexable]
                 : []),

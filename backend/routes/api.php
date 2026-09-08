@@ -19,6 +19,7 @@ use App\Http\Api\V1\Controllers\CompanyCheckoutController;
 use App\Http\Api\V1\Controllers\CompanyClaimStoreController;
 use App\Http\Api\V1\Controllers\CompanyIndexController;
 use App\Http\Api\V1\Controllers\CompanySearchController;
+use App\Http\Api\V1\Controllers\CompanyShowByIdController;
 use App\Http\Api\V1\Controllers\CompanyShowController;
 use App\Http\Api\V1\Controllers\CountryController;
 use App\Http\Api\V1\Controllers\DisputeReportStoreController;
@@ -80,6 +81,9 @@ Route::prefix('v1/{country}')->middleware(ResolveCountry::class)->group(function
     Route::get('/search/autocomplete', CompanyAutocompleteController::class);
     Route::get('/companies', CompanyIndexController::class);
     Route::get('/companies/{slug}', CompanyShowController::class);
+    // Lookup par id interne (Phase 16) — jamais dans une URL publique,
+    // uniquement consommé par le catch-all frontend après `/resolve`.
+    Route::get('/companies/lookup/{id}', CompanyShowByIdController::class);
     Route::post('/companies/{slug}/disputes', DisputeReportStoreController::class)->middleware('throttle:5,1');
     // Suivi public, sans authentification : le numéro de suivi (l'id de la
     // contestation) fait office de jeton — voir DisputeSubmittedNotification.

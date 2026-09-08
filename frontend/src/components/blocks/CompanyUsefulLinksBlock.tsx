@@ -2,22 +2,18 @@ import Link from "next/link";
 import { SectionCard } from "@/components/ui/SectionCard";
 import type { Company, InternalLink } from "@/types/company";
 
-/**
- * Seuls les liens de type `company` ont une route servie par le frontend
- * pour l'instant (`/companies/{slug}`) — la structure d'URL définitive des
- * autres types de page (ville, activité×ville, division administrative...)
- * n'est pas encore figée (Phase 16), donc pas encore routable.
- */
-function companyHref(link: InternalLink): string | null {
-  return link.type === "company" && typeof link.params.slug === "string"
-    ? `/companies/${link.params.slug}`
-    : null;
-}
+type RoutableLink = { link: InternalLink; href: string };
 
-function routableLinks(links: InternalLink[]): { link: InternalLink; href: string }[] {
+/**
+ * `path` (Phase 16, backend) n'est rempli que pour les types de page ayant
+ * une route servie par le frontend — les autres restent silencieusement
+ * masqués plutôt que d'afficher un lien cassé (CLAUDE.md §6.5). Jamais de
+ * reconstruction d'URL ici : le backend a déjà résolu le chemin exact.
+ */
+function routableLinks(links: InternalLink[]): RoutableLink[] {
   return links
-    .map((link) => ({ link, href: companyHref(link) }))
-    .filter((entry): entry is { link: InternalLink; href: string } => entry.href !== null);
+    .filter((link): link is InternalLink & { path: string } => link.path !== null)
+    .map((link) => ({ link, href: link.path }));
 }
 
 /**
@@ -25,7 +21,7 @@ function routableLinks(links: InternalLink[]): { link: InternalLink; href: strin
  * dès qu'aucun de ses liens n'est encore routable côté front, plutôt que
  * d'afficher un lien cassé (CLAUDE.md §6.5).
  */
-function LinkGroup({ title, entries }: { title: string; entries: { link: InternalLink; href: string }[] }) {
+function LinkGroup({ title, entries }: { title: string; entries: RoutableLink[] }) {
   if (entries.length === 0) {
     return null;
   }
