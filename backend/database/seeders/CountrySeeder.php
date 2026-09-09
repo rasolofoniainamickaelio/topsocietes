@@ -32,7 +32,10 @@ class CountrySeeder extends Seeder
                     'establishment' => ['name' => 'SIRET', 'pattern' => '^\d{14}$'],
                 ],
                 'activity_nomenclature_code' => 'NAF',
-                'url_patterns' => ['company' => '/{city}/{slug}-{public_id}'],
+                'url_patterns' => [
+                    'company' => '/{city}/{slug}-{public_id}',
+                    'activity_city' => '/{city}/{activity}',
+                ],
                 'source_config' => ['open_data' => ['insee_sirene', 'api_geo']],
                 'settings' => [],
             ],
@@ -50,7 +53,10 @@ class CountrySeeder extends Seeder
                     'primary' => ['name' => 'BCE', 'pattern' => '^\d{10}$'],
                 ],
                 'activity_nomenclature_code' => 'NACEBEL',
-                'url_patterns' => ['company' => '/{city}/{slug}-{public_id}'],
+                'url_patterns' => [
+                    'company' => '/{city}/{slug}-{public_id}',
+                    'activity_city' => '/{city}/{activity}',
+                ],
                 'source_config' => ['open_data' => ['bce_kbo']],
                 'settings' => [],
             ],
@@ -68,7 +74,10 @@ class CountrySeeder extends Seeder
                     'primary' => ['name' => 'MF', 'pattern' => '^\d{7}[A-Z]$'],
                 ],
                 'activity_nomenclature_code' => 'NAT',
-                'url_patterns' => ['company' => '/{city}/{slug}-{public_id}'],
+                'url_patterns' => [
+                    'company' => '/{city}/{slug}-{public_id}',
+                    'activity_city' => '/{city}/{activity}',
+                ],
                 'source_config' => ['open_data' => []],
                 'settings' => [],
             ],
@@ -86,7 +95,10 @@ class CountrySeeder extends Seeder
                     'primary' => ['name' => 'ICE', 'pattern' => '^\d{15}$'],
                 ],
                 'activity_nomenclature_code' => 'NAM',
-                'url_patterns' => ['company' => '/{city}/{slug}-{public_id}'],
+                'url_patterns' => [
+                    'company' => '/{city}/{slug}-{public_id}',
+                    'activity_city' => '/{city}/{activity}',
+                ],
                 'source_config' => ['open_data' => []],
                 // Pas de code postal ni de nomenclature d'activité officielle
                 // exploitables dans la source utilisée (annuaire scrapé, voir
@@ -109,7 +121,10 @@ class CountrySeeder extends Seeder
                     'primary' => ['name' => 'NIF', 'pattern' => '^\d{15,20}$'],
                 ],
                 'activity_nomenclature_code' => 'NAA',
-                'url_patterns' => ['company' => '/{city}/{slug}-{public_id}'],
+                'url_patterns' => [
+                    'company' => '/{city}/{slug}-{public_id}',
+                    'activity_city' => '/{city}/{activity}',
+                ],
                 'source_config' => ['open_data' => []],
                 'settings' => [],
             ],
@@ -127,7 +142,10 @@ class CountrySeeder extends Seeder
                     'primary' => ['name' => 'NEQ', 'pattern' => '^\d{10}$'],
                 ],
                 'activity_nomenclature_code' => 'SCIAN',
-                'url_patterns' => ['company' => '/{city}/{slug}-{public_id}'],
+                'url_patterns' => [
+                    'company' => '/{city}/{slug}-{public_id}',
+                    'activity_city' => '/{city}/{activity}',
+                ],
                 'source_config' => ['open_data' => ['req_quebec']],
                 'settings' => [],
             ],

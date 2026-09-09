@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Api\V1\Controllers\ActivityCityShowController;
 use App\Http\Api\V1\Controllers\ActivityIndexController;
 use App\Http\Api\V1\Controllers\ActivityShowController;
 use App\Http\Api\V1\Controllers\AdminDivisionIndexController;
@@ -72,6 +73,9 @@ Route::prefix('v1/{country}')->middleware(ResolveCountry::class)->group(function
     Route::get('/cities/{slug}', CityShowController::class);
     Route::get('/activities', ActivityIndexController::class);
     Route::get('/activities/{slug}', ActivityShowController::class);
+    // Page composite ville×activité (Phase 12) : ni /cities/{slug} ni
+    // /activities/{slug}, aucune collision de route.
+    Route::get('/activity-city/{citySlug}/{activitySlug}', ActivityCityShowController::class);
     Route::get('/sectors', SectorIndexController::class);
     Route::get('/sectors/{slug}', SectorShowController::class);
     Route::get('/districts/{slug}', DistrictShowController::class);

@@ -16,6 +16,10 @@ function routableLinks(links: InternalLink[]): RoutableLink[] {
     .map((link) => ({ link, href: link.path }));
 }
 
+function routableSingleLink(link: InternalLink | null): RoutableLink[] {
+  return link && link.path !== null ? [{ link, href: link.path }] : [];
+}
+
 /**
  * Maillage interne (Phase 15, backend) : le groupe est omis silencieusement
  * dès qu'aucun de ses liens n'est encore routable côté front, plutôt que
@@ -54,8 +58,15 @@ export function CompanyUsefulLinksBlock({ company }: { company: Company }) {
 
   const sameTradeInCity = routableLinks(links.sameTradeInCity);
   const nearby = routableLinks(links.nearby);
+  const activityInCity = routableSingleLink(links.activityInCity);
+  const activityInNeighborCities = routableLinks(links.activityInNeighborCities);
 
-  if (sameTradeInCity.length === 0 && nearby.length === 0) {
+  if (
+    sameTradeInCity.length === 0 &&
+    nearby.length === 0 &&
+    activityInCity.length === 0 &&
+    activityInNeighborCities.length === 0
+  ) {
     return null;
   }
 
@@ -64,6 +75,8 @@ export function CompanyUsefulLinksBlock({ company }: { company: Company }) {
       <div className="flex flex-col gap-4">
         <LinkGroup title="Même activité dans la commune" entries={sameTradeInCity} />
         <LinkGroup title="Entreprises à proximité" entries={nearby} />
+        <LinkGroup title="Ce métier dans la commune" entries={activityInCity} />
+        <LinkGroup title="Ce métier dans les villes voisines" entries={activityInNeighborCities} />
       </div>
     </SectionCard>
   );

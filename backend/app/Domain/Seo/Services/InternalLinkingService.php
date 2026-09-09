@@ -12,6 +12,7 @@ use App\Domain\Geo\Models\City;
 use App\Domain\Geo\Models\CityNeighbor;
 use App\Domain\Geo\Models\Country;
 use App\Domain\Geo\Queries\NearbyCompaniesQuery;
+use App\Domain\Seo\Actions\BuildActivityCityPathAction;
 use App\Domain\Seo\Data\CompanyLinksData;
 use App\Domain\Seo\Data\InternalLinkData;
 use App\Domain\Seo\Enums\PageType;
@@ -35,6 +36,7 @@ class InternalLinkingService
     public function __construct(
         private readonly NearbyCompaniesQuery $nearbyCompanies,
         private readonly BuildCompanyPathAction $buildCompanyPath,
+        private readonly BuildActivityCityPathAction $buildActivityCityPath,
     ) {}
 
     public function forCompany(Company $company): CompanyLinksData
@@ -132,7 +134,7 @@ class InternalLinkingService
             return null;
         }
 
-        return $this->activityCityLink($company->activity, $company->city);
+        return $this->activityCityLink($company->activity, $company->city, $company->country);
     }
 
     /**
@@ -154,17 +156,18 @@ class InternalLinkingService
             ->get()
             ->map(fn (CityNeighbor $link) => $link->neighborCity)
             ->filter()
-            ->map(fn (City $neighborCity) => $this->activityCityLink($company->activity, $neighborCity))
+            ->map(fn (City $neighborCity) => $this->activityCityLink($company->activity, $neighborCity, $company->country))
             ->values()
             ->all();
     }
 
-    private function activityCityLink(Activity $activity, City $city): InternalLinkData
+    private function activityCityLink(Activity $activity, City $city, Country $country): InternalLinkData
     {
         return new InternalLinkData(
             type: PageType::ActivityCity,
             label: "{$activity->public_label} à {$city->name}",
             params: ['citySlug' => $city->slug, 'activitySlug' => $activity->slug],
+            path: $this->buildActivityCityPath->execute($city, $activity, $country),
         );
     }
 

@@ -9,7 +9,12 @@ export type ResolvedPath =
   | {
       type: "route";
       page_type: string;
-      entity_type: string;
-      entity_id: number;
+      /**
+       * `null` pour une page composite (ex. activité×ville, Phase 12) :
+       * pas d'entité Eloquent unique, `routes.entity_type`/`entity_id`
+       * restent `null` en base pour ce cas.
+       */
+      entity_type: string | null;
+      entity_id: number | null;
       is_indexable: boolean;
     };

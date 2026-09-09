@@ -8,6 +8,7 @@ use App\Domain\Company\Enums\CompanyContentStatus;
 use App\Domain\Company\Models\Company;
 use App\Domain\Content\Enums\ContentStatus;
 use App\Domain\Content\Models\AdminDivisionContent;
+use App\Domain\Content\Models\CityActivityContent;
 use App\Domain\Content\Models\CityContent;
 use App\Domain\Content\Models\DistrictContent;
 use App\Domain\Content\Models\Fact;
@@ -20,6 +21,7 @@ use App\Domain\Seo\Enums\PublicationDecision;
 use App\Domain\Seo\Models\PagePublicationDecision;
 use App\Domain\Seo\Models\PagePublicationRule;
 use App\Domain\Seo\Models\PageRoute;
+use App\Domain\Taxonomy\Models\Activity;
 
 /**
  * Le système décide qu'une page ne mérite pas d'être indexée (Phase 18) :
@@ -27,11 +29,10 @@ use App\Domain\Seo\Models\PageRoute;
  * jamais codés en dur. Toujours en tâche de fond (après import, après
  * génération IA), jamais synchrone sur une requête.
  *
- * Seuls Company/City/District/AdminDivision savent aujourd'hui calculer
- * leurs statistiques (Activity, ActivityCity : pas encore de source de
- * comptage propre tant que leur `PageRoute` n'est pas peuplée, Phase 16) —
- * une cible non reconnue est publiable par défaut, jamais bloquée faute de
- * pouvoir être évaluée.
+ * Seuls Company/City/District/AdminDivision/ActivityCity savent calculer
+ * leurs statistiques — une cible non reconnue (Activity seule, Editorial,
+ * SectorGeo) est publiable par défaut, jamais bloquée faute de pouvoir être
+ * évaluée.
  */
 class EvaluatePagePublicationAction
 {
@@ -91,6 +92,7 @@ class EvaluatePagePublicationAction
             PageType::City => $this->cityStats($route->entity_id),
             PageType::District => $this->districtStats($route->entity_id),
             PageType::AdminDivision => $this->adminDivisionStats($route->entity_id),
+            PageType::ActivityCity => $this->activityCityStats($route),
             default => null,
         };
     }
@@ -177,6 +179,47 @@ class EvaluatePagePublicationAction
             'facts' => 0,
             'content_sections' => $contents->count(),
             'word_count' => $contents->sum(fn (AdminDivisionContent $content) => str_word_count(strip_tags((string) $content->body))),
+        ];
+    }
+
+    /**
+     * Page composite (Phase 12) : `entity_id` reste `null` pour ce type
+     * (décision actée dès la migration `routes`), donc pas d'`id` à
+     * chercher — le chemin lui-même (`/{city}/{activity}`, fixe et
+     * identique par pays aujourd'hui) est reparsé pour retrouver la ville
+     * et l'activité. Ajouter une colonne dédiée sur `routes` (déjà peuplée)
+     * modifierait le schéma d'une table en production, CLAUDE.md §9.
+     *
+     * @return array{companies: int, facts: int, content_sections: int, word_count: int}|null
+     */
+    private function activityCityStats(PageRoute $route): ?array
+    {
+        $segments = array_values(array_filter(explode('/', $route->path)));
+
+        if (count($segments) !== 2) {
+            return null;
+        }
+
+        [$citySlug, $activitySlug] = $segments;
+
+        $city = City::query()->where('country_id', $route->country_id)->where('slug', $citySlug)->first();
+        $activity = Activity::query()->where('slug', $activitySlug)->first();
+
+        if ($city === null || $activity === null) {
+            return null;
+        }
+
+        $contents = CityActivityContent::query()
+            ->where('city_id', $city->id)
+            ->where('activity_id', $activity->id)
+            ->where('status', ContentStatus::Published)
+            ->get();
+
+        return [
+            'companies' => Company::query()->where('city_id', $city->id)->where('activity_id', $activity->id)->count(),
+            'facts' => 0,
+            'content_sections' => $contents->count(),
+            'word_count' => $contents->sum(fn (CityActivityContent $content) => str_word_count(strip_tags((string) $content->body))),
         ];
     }
 
