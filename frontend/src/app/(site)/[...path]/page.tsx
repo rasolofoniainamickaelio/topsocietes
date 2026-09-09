@@ -4,6 +4,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { getCurrentCountry } from "@/lib/country/get-current-country";
 import { getCompanyById } from "@/lib/api/company";
 import { getActivityCity } from "@/lib/api/activityCity";
+import { getCity } from "@/lib/api/city";
 import { resolvePath } from "@/lib/api/routing";
 import { CompanyIdentityBlock } from "@/components/blocks/CompanyIdentityBlock";
 import { CompanyLegalInfoBlock } from "@/components/blocks/CompanyLegalInfoBlock";
@@ -21,6 +22,9 @@ import { ActivityCityHeader } from "@/components/activity-city/ActivityCityHeade
 import { CityActivityContentBlock } from "@/components/activity-city/CityActivityContentBlock";
 import { CompanyListSection } from "@/components/activity-city/CompanyListSection";
 import { NeighborCitiesList } from "@/components/activity-city/NeighborCitiesList";
+import { CityHeader } from "@/components/city/CityHeader";
+import { CityActivitiesList } from "@/components/city/CityActivitiesList";
+import { DistrictsList } from "@/components/city/DistrictsList";
 import type { Country } from "@/types/country";
 import type { ResolvedPath } from "@/types/routing";
 
@@ -116,6 +120,20 @@ export async function generateMetadata({
     };
   }
 
+  if (resolved.page_type === "city" && path.length === 1) {
+    const city = await getCity(country.subdomain, path[0]);
+
+    if (!city) {
+      return {};
+    }
+
+    return {
+      title: city.name,
+      alternates: host ? { canonical: `https://${host}${requestPath}` } : undefined,
+      robots,
+    };
+  }
+
   return {};
 }
 
@@ -128,10 +146,11 @@ export async function generateMetadata({
  * balisage entre rail et flux mobile est purement du CSS responsive
  * (`lg:hidden` / `hidden lg:block`), pas de logique conditionnelle JS.
  *
- * `page_type` reconnus : `company` (Phase 05/06/16) et `activity_city`
- * (Phase 12). Les autres types de page (ville, activité seule, etc.)
- * n'ont pas encore de page frontend — `notFound()` plutôt qu'une erreur de
- * rendu, à étendre au fur et à mesure que ces pages seront construites.
+ * `page_type` reconnus : `company` (Phase 05/06/16), `activity_city`
+ * (Phase 12) et `city` (Phase 13). Les autres types de page (département,
+ * région, pays, activité seule, secteur) n'ont pas encore de page
+ * frontend — `notFound()` plutôt qu'une erreur de rendu, à étendre au fur
+ * et à mesure que ces pages seront construites (même moule que `city`).
  */
 export default async function ResolvedPage({
   params,
@@ -183,6 +202,37 @@ export default async function ResolvedPage({
         />
 
         <NeighborCitiesList cities={page.neighbor_cities} />
+      </div>
+    );
+  }
+
+  if (resolved.page_type === "city" && path.length === 1) {
+    const city = await getCity(country.subdomain, path[0]);
+
+    if (!city) {
+      notFound();
+    }
+
+    const { cursor } = await searchParams;
+
+    return (
+      <div className="mx-auto flex max-w-[720px] flex-col gap-[var(--space-block)] px-4 py-8">
+        <CityHeader city={city} countryName={country.name} />
+
+        {city.blocks.map((block, index) => (
+          <ContentBlock key={`${block.type}-${index}`} block={block} />
+        ))}
+
+        <CompanyListSection
+          country={country.subdomain}
+          pagePath={city.path ?? requestPath}
+          citySlug={city.slug}
+          cursor={cursor}
+          cityName={city.name}
+        />
+
+        <CityActivitiesList activities={city.links?.activities ?? []} />
+        <DistrictsList districts={city.districts} />
       </div>
     );
   }

@@ -35,6 +35,7 @@ class CountrySeeder extends Seeder
                 'url_patterns' => [
                     'company' => '/{city}/{slug}-{public_id}',
                     'activity_city' => '/{city}/{activity}',
+                    'city' => '/{city}',
                 ],
                 'source_config' => ['open_data' => ['insee_sirene', 'api_geo']],
                 'settings' => [],
@@ -56,6 +57,7 @@ class CountrySeeder extends Seeder
                 'url_patterns' => [
                     'company' => '/{city}/{slug}-{public_id}',
                     'activity_city' => '/{city}/{activity}',
+                    'city' => '/{city}',
                 ],
                 'source_config' => ['open_data' => ['bce_kbo']],
                 'settings' => [],
@@ -77,6 +79,7 @@ class CountrySeeder extends Seeder
                 'url_patterns' => [
                     'company' => '/{city}/{slug}-{public_id}',
                     'activity_city' => '/{city}/{activity}',
+                    'city' => '/{city}',
                 ],
                 'source_config' => ['open_data' => []],
                 'settings' => [],
@@ -98,6 +101,7 @@ class CountrySeeder extends Seeder
                 'url_patterns' => [
                     'company' => '/{city}/{slug}-{public_id}',
                     'activity_city' => '/{city}/{activity}',
+                    'city' => '/{city}',
                 ],
                 'source_config' => ['open_data' => []],
                 // Pas de code postal ni de nomenclature d'activité officielle
@@ -124,6 +128,7 @@ class CountrySeeder extends Seeder
                 'url_patterns' => [
                     'company' => '/{city}/{slug}-{public_id}',
                     'activity_city' => '/{city}/{activity}',
+                    'city' => '/{city}',
                 ],
                 'source_config' => ['open_data' => []],
                 'settings' => [],
@@ -145,6 +150,7 @@ class CountrySeeder extends Seeder
                 'url_patterns' => [
                     'company' => '/{city}/{slug}-{public_id}',
                     'activity_city' => '/{city}/{activity}',
+                    'city' => '/{city}',
                 ],
                 'source_config' => ['open_data' => ['req_quebec']],
                 'settings' => [],

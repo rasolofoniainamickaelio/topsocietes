@@ -34,6 +34,24 @@ class CityResource extends JsonResource
             'districts' => DistrictResource::collection($this->whenLoaded('districts')),
             'neighbors' => CityNeighborResource::collection($this->whenLoaded('neighborLinks')),
             'blocks' => ContentBlockResource::collection($this->whenLoaded('contents')),
+            // Département + région, pour le fil d'Ariane (Phase 13) — texte
+            // simple côté frontend, ces deux niveaux n'ont pas encore de
+            // page à cibler.
+            'admin_division' => $this->whenLoaded('adminDivision', fn () => $this->adminDivision === null ? null : [
+                'name' => $this->adminDivision->name,
+                'region' => $this->adminDivision->relationLoaded('parent') ? $this->adminDivision->parent?->name : null,
+            ]),
+            // Attributs transitoires posés par `CityShowController` (Phase 13),
+            // même patron que `CompanyResource` (Phase 15/16/18).
+            ...($this->offsetExists('page_path')
+                ? ['path' => $this->resource->getAttribute('page_path')]
+                : []),
+            ...($this->offsetExists('page_links')
+                ? ['links' => $this->resource->getAttribute('page_links')]
+                : []),
+            ...($this->offsetExists('page_route') && $this->resource->getAttribute('page_route') !== null
+                ? ['is_indexable' => $this->resource->getAttribute('page_route')->is_indexable]
+                : []),
         ];
     }
 }

@@ -6,7 +6,9 @@ import { CompanyListItem } from "@/components/activity-city/CompanyListItem";
 /**
  * Server Component asynchrone (pas d'interactivité réelle — pagination par
  * lien simple `?cursor=`, cohérent avec "Server Components par défaut",
- * CLAUDE.md §4).
+ * CLAUDE.md §4). Partagé entre la page activité×ville (Phase 12, filtre
+ * ville+activité) et la page ville (Phase 13, filtre ville seule) —
+ * `activitySlug`/`activityLabel` absents pour cette dernière.
  */
 export async function CompanyListSection({
   country,
@@ -20,10 +22,10 @@ export async function CompanyListSection({
   country: string;
   pagePath: string;
   citySlug: string;
-  activitySlug: string;
+  activitySlug?: string;
   cursor?: string;
   cityName: string;
-  activityLabel: string;
+  activityLabel?: string;
 }) {
   const page = await listCompanies(country, { city: citySlug, activity: activitySlug, cursor });
 
@@ -31,7 +33,9 @@ export async function CompanyListSection({
     <SectionCard theme="sector" title="Entreprises">
       {page.data.length === 0 ? (
         <p>
-          Aucune entreprise répertoriée pour {activityLabel.toLowerCase()} à {cityName}.
+          {activityLabel
+            ? `Aucune entreprise répertoriée pour ${activityLabel.toLowerCase()} à ${cityName}.`
+            : `Aucune entreprise répertoriée à ${cityName}.`}
         </p>
       ) : (
         <ul>

@@ -9,9 +9,11 @@ use App\Domain\Content\Models\CityActivityContent;
 use App\Domain\Content\Models\CityContent;
 use App\Domain\Content\Models\Fact;
 use App\Domain\Content\Models\SourceDocument;
+use App\Domain\Geo\Observers\CityObserver;
 use App\Support\Casts\PostgresArrayCast;
 use App\Support\Concerns\HasLocation;
 use Database\Factories\CityFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @property-read string|null $location
  * @property-read string|null $boundary
  */
+#[ObservedBy(CityObserver::class)]
 class City extends Model
 {
     /** @use HasFactory<CityFactory> */

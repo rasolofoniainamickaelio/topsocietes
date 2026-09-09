@@ -18,7 +18,7 @@ class ShowCityAction
         $city = City::query()
             ->where('country_id', $country->id)
             ->where('slug', $slug)
-            ->with(['districts', 'neighborLinks.neighborCity'])
+            ->with(['districts', 'neighborLinks.neighborCity', 'adminDivision.parent'])
             ->first();
 
         if ($city === null) {
