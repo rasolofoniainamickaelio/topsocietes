@@ -9,7 +9,9 @@ use App\Domain\Content\Models\ActivityContent;
 use App\Domain\Content\Models\CityActivityContent;
 use App\Domain\Content\Models\Fact;
 use App\Domain\Content\Models\SourceDocument;
+use App\Domain\Taxonomy\Observers\ActivityObserver;
 use Database\Factories\ActivityFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
+#[ObservedBy(ActivityObserver::class)]
 class Activity extends Model
 {
     /** @use HasFactory<ActivityFactory> */

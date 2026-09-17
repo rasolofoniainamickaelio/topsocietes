@@ -8,13 +8,16 @@ use App\Domain\Ai\Models\AiGenerationJob;
 use App\Domain\Content\Models\ActivityContent;
 use App\Domain\Content\Models\CityActivityContent;
 use App\Domain\Content\Models\Fact;
+use App\Domain\Taxonomy\Observers\SectorObserver;
 use Database\Factories\SectorFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
+#[ObservedBy(SectorObserver::class)]
 class Sector extends Model
 {
     /** @use HasFactory<SectorFactory> */

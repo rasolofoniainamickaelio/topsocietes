@@ -7,6 +7,7 @@ namespace App\Domain\Seo\Actions;
 use App\Domain\Company\Enums\CompanyContentStatus;
 use App\Domain\Company\Models\Company;
 use App\Domain\Content\Enums\ContentStatus;
+use App\Domain\Content\Models\ActivityContent;
 use App\Domain\Content\Models\AdminDivisionContent;
 use App\Domain\Content\Models\CityActivityContent;
 use App\Domain\Content\Models\CityContent;
@@ -22,6 +23,7 @@ use App\Domain\Seo\Models\PagePublicationDecision;
 use App\Domain\Seo\Models\PagePublicationRule;
 use App\Domain\Seo\Models\PageRoute;
 use App\Domain\Taxonomy\Models\Activity;
+use App\Domain\Taxonomy\Models\Sector;
 
 /**
  * Le système décide qu'une page ne mérite pas d'être indexée (Phase 18) :
@@ -29,10 +31,10 @@ use App\Domain\Taxonomy\Models\Activity;
  * jamais codés en dur. Toujours en tâche de fond (après import, après
  * génération IA), jamais synchrone sur une requête.
  *
- * Seuls Company/City/District/AdminDivision/ActivityCity savent calculer
- * leurs statistiques — une cible non reconnue (Activity seule, Editorial,
- * SectorGeo) est publiable par défaut, jamais bloquée faute de pouvoir être
- * évaluée.
+ * Seuls Company/City/District/AdminDivision/Activity/Sector/ActivityCity
+ * savent calculer leurs statistiques — une cible non reconnue (Country,
+ * Editorial, SectorGeo — page composite future) est publiable par défaut,
+ * jamais bloquée faute de pouvoir être évaluée.
  */
 class EvaluatePagePublicationAction
 {
@@ -92,6 +94,8 @@ class EvaluatePagePublicationAction
             PageType::City => $this->cityStats($route->entity_id),
             PageType::District => $this->districtStats($route->entity_id),
             PageType::AdminDivision => $this->adminDivisionStats($route->entity_id),
+            PageType::Activity => $this->activityStats($route->entity_id),
+            PageType::Sector => $this->sectorStats($route->entity_id),
             PageType::ActivityCity => $this->activityCityStats($route),
             default => null,
         };
@@ -175,10 +179,62 @@ class EvaluatePagePublicationAction
             ->get();
 
         return [
-            'companies' => Company::query()->where('admin_division_id', $entityId)->count(),
+            'companies' => $division->companies_count ?? 0,
             'facts' => 0,
             'content_sections' => $contents->count(),
             'word_count' => $contents->sum(fn (AdminDivisionContent $content) => str_word_count(strip_tags((string) $content->body))),
+        ];
+    }
+
+    /**
+     * @return array{companies: int, facts: int, content_sections: int, word_count: int}|null
+     */
+    private function activityStats(int $entityId): ?array
+    {
+        $activity = Activity::find($entityId);
+
+        if ($activity === null) {
+            return null;
+        }
+
+        $contents = ActivityContent::query()
+            ->where('activity_id', $entityId)
+            ->where('status', ContentStatus::Published)
+            ->get();
+
+        return [
+            'companies' => $activity->companies_count ?? 0,
+            'facts' => Fact::query()->where('subject_type', $activity->getMorphClass())->where('subject_id', $entityId)->usable()->count(),
+            'content_sections' => $contents->count(),
+            'word_count' => $contents->sum(fn (ActivityContent $content) => str_word_count(strip_tags((string) $content->body))),
+        ];
+    }
+
+    /**
+     * Secteur = entité transversale (pas rattachée à un pays), mais la
+     * décision de publication reste bien scopée par pays via la route elle
+     * -même (une page secteur par pays actif, Phase 13).
+     *
+     * @return array{companies: int, facts: int, content_sections: int, word_count: int}|null
+     */
+    private function sectorStats(int $entityId): ?array
+    {
+        $sector = Sector::find($entityId);
+
+        if ($sector === null) {
+            return null;
+        }
+
+        $contents = ActivityContent::query()
+            ->where('sector_id', $entityId)
+            ->where('status', ContentStatus::Published)
+            ->get();
+
+        return [
+            'companies' => $sector->companies_count ?? 0,
+            'facts' => Fact::query()->where('subject_type', $sector->getMorphClass())->where('subject_id', $entityId)->usable()->count(),
+            'content_sections' => $contents->count(),
+            'word_count' => $contents->sum(fn (ActivityContent $content) => str_word_count(strip_tags((string) $content->body))),
         ];
     }
 

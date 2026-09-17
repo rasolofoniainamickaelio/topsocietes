@@ -6,6 +6,7 @@ use App\Domain\Company\Models\Company;
 use App\Domain\Content\Enums\ContentStatus;
 use App\Domain\Content\Models\ActivityContent;
 use App\Domain\Content\Models\CityActivityContent;
+use App\Domain\Content\Models\CityContent;
 use App\Domain\Geo\Models\City;
 use App\Domain\Geo\Models\CityNeighbor;
 use App\Domain\Geo\Models\Country;
@@ -43,6 +44,7 @@ it('returns the city, activity, published content and neighbor cities', function
         ->assertJsonPath('data.city.name', 'Lyon')
         ->assertJsonPath('data.activity.label', 'Transport urbain')
         ->assertJsonPath('data.path', "/{$city->slug}/{$activity->slug}")
+        ->assertJsonPath('data.city.path', "/{$city->slug}")
         ->assertJsonCount(1, 'data.blocks')
         ->assertJsonPath('data.blocks.0.data.body', 'Présentation locale.')
         ->assertJsonPath('data.neighbor_cities.0.slug', $neighbor->slug);
@@ -69,6 +71,44 @@ it('also includes the generic activity content, shared across every city', funct
         ->assertJsonCount(1, 'data.blocks')
         ->assertJsonPath('data.blocks.0.type', 'regulation')
         ->assertJsonPath('data.blocks.0.data.title', 'Réglementation');
+});
+
+it('includes published city history and leisure blocks for tourism and culture', function (): void {
+    $country = Country::factory()->create(['subdomain' => 'fr', 'is_active' => true]);
+    $nomenclature = ActivityNomenclature::factory()->create(['country_id' => $country->id]);
+    $activity = Activity::factory()->for($nomenclature, 'nomenclature')->create();
+    $city = City::factory()->for($country)->create();
+
+    CityContent::factory()->create([
+        'city_id' => $city->id,
+        'section' => 'history',
+        'title' => 'Histoire locale',
+        'body' => 'Culture de la ville.',
+        'status' => ContentStatus::Published,
+    ]);
+    CityContent::factory()->create([
+        'city_id' => $city->id,
+        'section' => 'leisure',
+        'title' => 'À voir',
+        'body' => 'Tourisme local.',
+        'status' => ContentStatus::Published,
+    ]);
+    CityContent::factory()->create([
+        'city_id' => $city->id,
+        'section' => 'nature',
+        'title' => 'Nature',
+        'body' => 'Hors scope activité×ville.',
+        'status' => ContentStatus::Published,
+    ]);
+
+    $response = $this->getJson("/api/v1/fr/activity-city/{$city->slug}/{$activity->slug}");
+
+    $response->assertOk()
+        ->assertJsonCount(2, 'data.blocks')
+        ->assertJsonPath('data.blocks.0.type', 'history')
+        ->assertJsonPath('data.blocks.0.data.body', 'Culture de la ville.')
+        ->assertJsonPath('data.blocks.1.type', 'leisure')
+        ->assertJsonPath('data.blocks.1.data.body', 'Tourisme local.');
 });
 
 it('returns 404 for an unknown city', function (): void {

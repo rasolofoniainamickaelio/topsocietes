@@ -4,11 +4,13 @@ import type { ContentBlock } from "@/types/company";
 export interface ActivityCityCityRef {
   slug: string;
   name: string;
+  path?: string;
 }
 
 export interface ActivityCityActivityRef {
   slug: string;
   label: string;
+  path?: string;
 }
 
 export interface NeighborCityLink {

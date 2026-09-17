@@ -16,6 +16,8 @@ enum PageType: string
     case AdminDivision = 'admin_division';
     case Activity = 'activity';
     case ActivityCity = 'activity_city';
+    case Sector = 'sector';
     case SectorGeo = 'sector_geo';
+    case Country = 'country';
     case Editorial = 'editorial';
 }

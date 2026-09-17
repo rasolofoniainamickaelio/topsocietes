@@ -34,9 +34,9 @@ class CityResource extends JsonResource
             'districts' => DistrictResource::collection($this->whenLoaded('districts')),
             'neighbors' => CityNeighborResource::collection($this->whenLoaded('neighborLinks')),
             'blocks' => ContentBlockResource::collection($this->whenLoaded('contents')),
-            // Département + région, pour le fil d'Ariane (Phase 13) — texte
-            // simple côté frontend, ces deux niveaux n'ont pas encore de
-            // page à cibler.
+            // Département + région pour le fil d'Ariane (Phase 13) — les
+            // chemins cliquables viennent de `links.department` /
+            // `links.region` (TerritoryLinkingService), pas d'ici.
             'admin_division' => $this->whenLoaded('adminDivision', fn () => $this->adminDivision === null ? null : [
                 'name' => $this->adminDivision->name,
                 'region' => $this->adminDivision->relationLoaded('parent') ? $this->adminDivision->parent?->name : null,

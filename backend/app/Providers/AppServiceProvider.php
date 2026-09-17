@@ -16,7 +16,9 @@ use App\Domain\Content\Models\AdminDivisionContent;
 use App\Domain\Content\Models\CityActivityContent;
 use App\Domain\Content\Models\CityContent;
 use App\Domain\Content\Models\DistrictContent;
+use App\Domain\Geo\Models\AdminDivision;
 use App\Domain\Geo\Models\City;
+use App\Domain\Geo\Models\Country;
 use App\Domain\Geo\Models\District;
 use App\Domain\Geo\Models\PointOfInterest;
 use App\Domain\Search\Contracts\SearchEngineInterface;
@@ -84,6 +86,8 @@ class AppServiceProvider extends ServiceProvider
             'user' => User::class,
             'city' => City::class,
             'district' => District::class,
+            'admin_division' => AdminDivision::class,
+            'country' => Country::class,
             'activity' => Activity::class,
             'sector' => Sector::class,
             'poi' => PointOfInterest::class,

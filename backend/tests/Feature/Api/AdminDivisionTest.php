@@ -46,3 +46,28 @@ it('returns 404 for an unknown division', function (): void {
 
     $response->assertNotFound();
 });
+
+it('exposes its path, level label, companies count and territory links', function (): void {
+    $country = Country::factory()->create([
+        'subdomain' => 'fr',
+        'is_active' => true,
+        'admin_level_labels' => ['region' => 'Région', 'department' => 'Département', 'city' => 'Commune'],
+        'url_patterns' => ['admin_division_1' => '/region/{admin_division}', 'admin_division_2' => '/departement/{admin_division}'],
+    ]);
+    $region = AdminDivision::factory()->for($country)->create(['level' => 1, 'name' => 'Auvergne-Rhône-Alpes', 'slug' => 'auvergne-rhone-alpes']);
+    $department = AdminDivision::factory()->for($country)->create(['level' => 2, 'parent_id' => $region->id, 'name' => 'Rhône', 'slug' => 'rhone']);
+
+    $response = $this->getJson('/api/v1/fr/admin-divisions/rhone');
+
+    $response->assertOk()
+        ->assertJsonPath('data.path', '/departement/rhone')
+        ->assertJsonPath('data.level_label', 'Département')
+        ->assertJsonPath('data.is_indexable', true)
+        ->assertJsonPath('data.parent.slug', 'auvergne-rhone-alpes')
+        ->assertJsonPath('data.links.parent.label', 'Auvergne-Rhône-Alpes');
+
+    $regionResponse = $this->getJson('/api/v1/fr/admin-divisions/auvergne-rhone-alpes');
+    $regionResponse->assertOk()
+        ->assertJsonPath('data.level_label', 'Région')
+        ->assertJsonPath('data.links.parent.path', '/');
+});

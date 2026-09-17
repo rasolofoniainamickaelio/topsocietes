@@ -10,6 +10,7 @@ use App\Domain\Company\Models\Establishment;
 use App\Domain\Geo\Models\City;
 use App\Domain\Geo\Models\Country;
 use App\Domain\Taxonomy\Models\Activity;
+use App\Domain\Taxonomy\Models\Sector;
 
 it('lists companies scoped to the resolved country', function (): void {
     $country = Country::factory()->create(['subdomain' => 'fr', 'is_active' => true]);
@@ -36,6 +37,22 @@ it('filters companies by city slug', function (): void {
 
     $response->assertOk();
     expect(collect($response->json('data'))->pluck('slug')->all())->toBe([$inParis->slug]);
+});
+
+it('filters companies by sector slug through the activity relation', function (): void {
+    $country = Country::factory()->create(['subdomain' => 'fr', 'is_active' => true]);
+    $sector = Sector::factory()->create(['slug' => 'transport-logistique']);
+    $inSector = Activity::factory()->create();
+    $sector->activities()->attach($inSector->id);
+    $outOfSector = Activity::factory()->create();
+
+    $matching = Company::factory()->for($country)->for($inSector)->create(['legal_name' => 'In Sector SARL']);
+    Company::factory()->for($country)->for($outOfSector)->create(['legal_name' => 'Out Corp']);
+
+    $response = $this->getJson('/api/v1/fr/companies?sector=transport-logistique');
+
+    $response->assertOk();
+    expect(collect($response->json('data'))->pluck('slug')->all())->toBe([$matching->slug]);
 });
 
 it('never returns a company belonging to another country', function (): void {

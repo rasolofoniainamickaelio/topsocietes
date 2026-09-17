@@ -22,7 +22,7 @@ class ShowAdminDivisionAction
         $division = AdminDivision::query()
             ->where('country_id', $country->id)
             ->where('slug', $slug)
-            ->with('children')
+            ->with(['children', 'parent'])
             ->first();
 
         if ($division === null) {

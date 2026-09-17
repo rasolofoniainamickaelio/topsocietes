@@ -5,6 +5,9 @@ import { getCurrentCountry } from "@/lib/country/get-current-country";
 import { getCompanyById } from "@/lib/api/company";
 import { getActivityCity } from "@/lib/api/activityCity";
 import { getCity } from "@/lib/api/city";
+import { getAdminDivision } from "@/lib/api/admin-division";
+import { getActivity } from "@/lib/api/activity";
+import { getSector } from "@/lib/api/sector";
 import { resolvePath } from "@/lib/api/routing";
 import { CompanyIdentityBlock } from "@/components/blocks/CompanyIdentityBlock";
 import { CompanyLegalInfoBlock } from "@/components/blocks/CompanyLegalInfoBlock";
@@ -25,6 +28,11 @@ import { NeighborCitiesList } from "@/components/activity-city/NeighborCitiesLis
 import { CityHeader } from "@/components/city/CityHeader";
 import { CityActivitiesList } from "@/components/city/CityActivitiesList";
 import { DistrictsList } from "@/components/city/DistrictsList";
+import { AdminDivisionHeader } from "@/components/admin-division/AdminDivisionHeader";
+import { ChildDivisionsList } from "@/components/admin-division/ChildDivisionsList";
+import { ActivityHeader } from "@/components/activity/ActivityHeader";
+import { ActivityLinksSection } from "@/components/activity/ActivityLinksSection";
+import { SectorHeader } from "@/components/sector/SectorHeader";
 import type { Country } from "@/types/country";
 import type { ResolvedPath } from "@/types/routing";
 
@@ -134,6 +142,48 @@ export async function generateMetadata({
     };
   }
 
+  if (resolved.page_type === "admin_division") {
+    const division = await getAdminDivision(country.subdomain, path[path.length - 1]);
+
+    if (!division) {
+      return {};
+    }
+
+    return {
+      title: division.name,
+      alternates: host ? { canonical: `https://${host}${requestPath}` } : undefined,
+      robots,
+    };
+  }
+
+  if (resolved.page_type === "activity") {
+    const activity = await getActivity(country.subdomain, path[path.length - 1]);
+
+    if (!activity) {
+      return {};
+    }
+
+    return {
+      title: activity.label,
+      alternates: host ? { canonical: `https://${host}${requestPath}` } : undefined,
+      robots,
+    };
+  }
+
+  if (resolved.page_type === "sector") {
+    const sector = await getSector(country.subdomain, path[path.length - 1]);
+
+    if (!sector) {
+      return {};
+    }
+
+    return {
+      title: sector.name,
+      alternates: host ? { canonical: `https://${host}${requestPath}` } : undefined,
+      robots,
+    };
+  }
+
   return {};
 }
 
@@ -147,10 +197,10 @@ export async function generateMetadata({
  * (`lg:hidden` / `hidden lg:block`), pas de logique conditionnelle JS.
  *
  * `page_type` reconnus : `company` (Phase 05/06/16), `activity_city`
- * (Phase 12) et `city` (Phase 13). Les autres types de page (département,
- * région, pays, activité seule, secteur) n'ont pas encore de page
- * frontend — `notFound()` plutôt qu'une erreur de rendu, à étendre au fur
- * et à mesure que ces pages seront construites (même moule que `city`).
+ * (Phase 12), `city`, `admin_division` (région ET département/province —
+ * même modèle, `level` distingue), `activity` et `sector` (Phase 13). La
+ * page pays est la homepage (`app/(site)/page.tsx`), hors de ce catch-all
+ * — `notFound()` plutôt qu'une erreur de rendu pour tout autre type.
  */
 export default async function ResolvedPage({
   params,
@@ -179,29 +229,42 @@ export default async function ResolvedPage({
     const { cursor } = await searchParams;
 
     return (
-      <div className="mx-auto flex max-w-[720px] flex-col gap-[var(--space-block)] px-4 py-8">
-        <ActivityCityHeader page={page} />
+      <div className="mx-auto grid max-w-[1056px] grid-cols-1 gap-[var(--space-block)] px-4 py-8 lg:grid-cols-[720px_300px]">
+        <main className="flex flex-col gap-[var(--space-block)]">
+          <ActivityCityHeader page={page} countryName={country.name} />
 
-        {page.blocks.map((block, index) => (
-          <CityActivityContentBlock
-            key={`${block.type}-${index}`}
-            block={block}
-            activityLabel={page.activity.label}
+          {page.blocks.map((block, index) => (
+            <CityActivityContentBlock
+              key={`${block.type}-${index}`}
+              block={block}
+              activityLabel={page.activity.label}
+              cityName={page.city.name}
+            />
+          ))}
+
+          <AdSlot label={AD_CLOSE_COMPANY} className="lg:hidden" />
+
+          <CompanyListSection
+            country={country.subdomain}
+            pagePath={page.path}
+            citySlug={page.city.slug}
+            activitySlug={page.activity.slug}
+            cursor={cursor}
             cityName={page.city.name}
+            activityLabel={page.activity.label}
           />
-        ))}
 
-        <CompanyListSection
-          country={country.subdomain}
-          pagePath={page.path}
-          citySlug={page.city.slug}
-          activitySlug={page.activity.slug}
-          cursor={cursor}
-          cityName={page.city.name}
-          activityLabel={page.activity.label}
-        />
+          <NeighborCitiesList cities={page.neighbor_cities} />
 
-        <NeighborCitiesList cities={page.neighbor_cities} />
+          <AdSlot label={AD_CREATE_COMPANY} className="lg:hidden" />
+        </main>
+
+        <aside className="hidden flex-col gap-[var(--space-block)] lg:flex">
+          <div className="sticky top-6 flex flex-col gap-[var(--space-block)]">
+            <AdSlot label={AD_CLOSE_COMPANY} />
+            <AdSlot label={AD_CREATE_COMPANY} />
+          </div>
+        </aside>
       </div>
     );
   }
@@ -233,6 +296,87 @@ export default async function ResolvedPage({
 
         <CityActivitiesList activities={city.links?.activities ?? []} />
         <DistrictsList districts={city.districts} />
+      </div>
+    );
+  }
+
+  if (resolved.page_type === "admin_division") {
+    const division = await getAdminDivision(country.subdomain, path[path.length - 1]);
+
+    if (!division) {
+      notFound();
+    }
+
+    return (
+      <div className="mx-auto flex max-w-[720px] flex-col gap-[var(--space-block)] px-4 py-8">
+        <AdminDivisionHeader division={division} countryName={country.name} />
+
+        {division.blocks.map((block, index) => (
+          <ContentBlock key={`${block.type}-${index}`} block={block} />
+        ))}
+
+        <ChildDivisionsList divisions={division.links?.children ?? []} />
+      </div>
+    );
+  }
+
+  if (resolved.page_type === "activity") {
+    const activity = await getActivity(country.subdomain, path[path.length - 1]);
+
+    if (!activity) {
+      notFound();
+    }
+
+    const { cursor } = await searchParams;
+
+    return (
+      <div className="mx-auto flex max-w-[720px] flex-col gap-[var(--space-block)] px-4 py-8">
+        <ActivityHeader activity={activity} countryName={country.name} />
+
+        {activity.blocks.map((block, index) => (
+          <ContentBlock key={`${block.type}-${index}`} block={block} />
+        ))}
+
+        <CompanyListSection
+          country={country.subdomain}
+          pagePath={activity.path ?? requestPath}
+          activitySlug={activity.slug}
+          cursor={cursor}
+          activityLabel={activity.label}
+        />
+
+        <ActivityLinksSection title="Secteurs" theme="sector" links={activity.links?.sectors ?? []} />
+        <ActivityLinksSection title="Villes où cette activité est présente" theme="district" links={activity.links?.cities ?? []} />
+      </div>
+    );
+  }
+
+  if (resolved.page_type === "sector") {
+    const sector = await getSector(country.subdomain, path[path.length - 1]);
+
+    if (!sector) {
+      notFound();
+    }
+
+    const { cursor } = await searchParams;
+
+    return (
+      <div className="mx-auto flex max-w-[720px] flex-col gap-[var(--space-block)] px-4 py-8">
+        <SectorHeader sector={sector} countryName={country.name} />
+
+        {sector.blocks.map((block, index) => (
+          <ContentBlock key={`${block.type}-${index}`} block={block} />
+        ))}
+
+        <CompanyListSection
+          country={country.subdomain}
+          pagePath={sector.path ?? requestPath}
+          sectorSlug={sector.slug}
+          cursor={cursor}
+          sectorLabel={sector.name}
+        />
+
+        <ActivityLinksSection title="Activités de ce secteur" theme="sector" links={sector.links?.activities ?? []} />
       </div>
     );
   }

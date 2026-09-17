@@ -7,35 +7,42 @@ import { CompanyListItem } from "@/components/activity-city/CompanyListItem";
  * Server Component asynchrone (pas d'interactivité réelle — pagination par
  * lien simple `?cursor=`, cohérent avec "Server Components par défaut",
  * CLAUDE.md §4). Partagé entre la page activité×ville (Phase 12, filtre
- * ville+activité) et la page ville (Phase 13, filtre ville seule) —
- * `activitySlug`/`activityLabel` absents pour cette dernière.
+ * ville+activité), la page ville, la page activité seule et la page
+ * secteur (Phase 13, chacune n'utilisant qu'un sous-ensemble des filtres).
  */
 export async function CompanyListSection({
   country,
   pagePath,
   citySlug,
   activitySlug,
+  sectorSlug,
   cursor,
   cityName,
   activityLabel,
+  sectorLabel,
 }: {
   country: string;
   pagePath: string;
-  citySlug: string;
+  citySlug?: string;
   activitySlug?: string;
+  sectorSlug?: string;
   cursor?: string;
-  cityName: string;
+  cityName?: string;
   activityLabel?: string;
+  sectorLabel?: string;
 }) {
-  const page = await listCompanies(country, { city: citySlug, activity: activitySlug, cursor });
+  const page = await listCompanies(country, { city: citySlug, activity: activitySlug, sector: sectorSlug, cursor });
+  const subjectLabel = activityLabel ?? sectorLabel;
 
   return (
     <SectionCard theme="sector" title="Entreprises">
       {page.data.length === 0 ? (
         <p>
-          {activityLabel
-            ? `Aucune entreprise répertoriée pour ${activityLabel.toLowerCase()} à ${cityName}.`
-            : `Aucune entreprise répertoriée à ${cityName}.`}
+          {subjectLabel && cityName
+            ? `Aucune entreprise répertoriée pour ${subjectLabel.toLowerCase()} à ${cityName}.`
+            : cityName
+              ? `Aucune entreprise répertoriée à ${cityName}.`
+              : `Aucune entreprise répertoriée pour ${(subjectLabel ?? "ce secteur").toLowerCase()}.`}
         </p>
       ) : (
         <ul>

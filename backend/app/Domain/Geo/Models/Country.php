@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Geo\Models;
 
+use App\Domain\Geo\Observers\CountryObserver;
 use Database\Factories\CountryFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,7 +14,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property array<string, mixed>|null $settings
  * @property array<string, mixed>|null $url_patterns
+ * @property array<string, string>|null $admin_level_labels
  */
+#[ObservedBy(CountryObserver::class)]
 class Country extends Model
 {
     /** @use HasFactory<CountryFactory> */

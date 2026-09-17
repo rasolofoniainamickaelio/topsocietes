@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Domain\Geo\Models;
 
 use App\Domain\Content\Models\AdminDivisionContent;
+use App\Domain\Geo\Observers\AdminDivisionObserver;
 use Database\Factories\AdminDivisionFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[ObservedBy(AdminDivisionObserver::class)]
 class AdminDivision extends Model
 {
     /** @use HasFactory<AdminDivisionFactory> */
@@ -26,6 +29,8 @@ class AdminDivision extends Model
         'population',
         'area_km2',
         'path',
+        'companies_count',
+        'counts_updated_at',
     ];
 
     protected function casts(): array
@@ -36,6 +41,8 @@ class AdminDivision extends Model
             'area_km2' => 'decimal:2',
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
+            'companies_count' => 'integer',
+            'counts_updated_at' => 'datetime',
         ];
     }
 

@@ -12,6 +12,7 @@ use App\Domain\Seo\Enums\PageType;
 use App\Domain\Seo\Models\PageRoute;
 use App\Domain\Seo\Services\InternalLinkingService;
 use App\Domain\Taxonomy\Models\Activity;
+use App\Domain\Taxonomy\Models\ActivityNomenclature;
 
 beforeEach(function (): void {
     $this->country = Country::factory()->create();
@@ -86,20 +87,29 @@ it('links to the department and the region through the admin division hierarchy'
     $links = app(InternalLinkingService::class)->forCompany($this->company);
 
     expect($links->department->label)->toBe('Rhône')
-        ->and($links->region->label)->toBe('Auvergne-Rhône-Alpes');
+        ->and($links->department->path)->not->toBeNull()
+        ->and($links->region->label)->toBe('Auvergne-Rhône-Alpes')
+        ->and($links->region->path)->not->toBeNull()
+        ->and($links->country->path)->toBe('/');
 });
 
 it('lists sibling activities as related activities, never the activity itself', function (): void {
-    $parent = Activity::factory()->create();
-    $this->activity->update(['parent_id' => $parent->id]);
-    $sibling = Activity::factory()->create(['parent_id' => $parent->id, 'is_publishable' => true, 'public_label' => 'Électricien']);
-    Activity::factory()->create(['parent_id' => $parent->id, 'is_publishable' => false]);
+    $nomenclature = ActivityNomenclature::factory()->create(['country_id' => $this->country->id]);
+    $parent = Activity::factory()->for($nomenclature, 'nomenclature')->create();
+    $this->activity->update(['parent_id' => $parent->id, 'nomenclature_id' => $nomenclature->id]);
+    $sibling = Activity::factory()->for($nomenclature, 'nomenclature')->create([
+        'parent_id' => $parent->id,
+        'is_publishable' => true,
+        'public_label' => 'Électricien',
+    ]);
+    Activity::factory()->for($nomenclature, 'nomenclature')->create(['parent_id' => $parent->id, 'is_publishable' => false]);
 
-    $links = app(InternalLinkingService::class)->forCompany($this->company->fresh());
+    $links = app(InternalLinkingService::class)->forCompany($this->company->fresh(['activity', 'country']));
 
     $slugs = collect($links->relatedActivities)->map(fn ($link) => $link->params['slug']);
     expect($slugs)->toContain($sibling->slug)
-        ->and($slugs)->not->toContain($this->activity->slug);
+        ->and($slugs)->not->toContain($this->activity->slug)
+        ->and(collect($links->relatedActivities)->firstWhere('params.slug', $sibling->slug)->path)->not->toBeNull();
 });
 
 it('omits the company-creation link when no country configures it', function (): void {

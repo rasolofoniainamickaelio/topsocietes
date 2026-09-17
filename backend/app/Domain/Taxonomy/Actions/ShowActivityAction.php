@@ -20,7 +20,7 @@ class ShowActivityAction
         $activity = Activity::query()
             ->whereHas('nomenclature', fn ($query) => $query->where('country_id', $country->id))
             ->where('slug', $slug)
-            ->with('sectors')
+            ->with(['sectors', 'parent'])
             ->first();
 
         if ($activity === null) {

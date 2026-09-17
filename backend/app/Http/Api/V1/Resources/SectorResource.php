@@ -23,6 +23,17 @@ class SectorResource extends JsonResource
             'name' => $this->name,
             'companies_count' => $this->companies_count,
             'blocks' => ContentBlockResource::collection($this->whenLoaded('contents')),
+            // Attributs transitoires posés par `SectorShowController`
+            // (Phase 13), même patron que `CityResource`.
+            ...($this->offsetExists('page_path')
+                ? ['path' => $this->resource->getAttribute('page_path')]
+                : []),
+            ...($this->offsetExists('page_links')
+                ? ['links' => $this->resource->getAttribute('page_links')]
+                : []),
+            ...($this->offsetExists('page_route') && $this->resource->getAttribute('page_route') !== null
+                ? ['is_indexable' => $this->resource->getAttribute('page_route')->is_indexable]
+                : []),
         ];
     }
 }

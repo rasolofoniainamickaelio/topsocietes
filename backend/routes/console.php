@@ -36,6 +36,11 @@ Schedule::call(function (): void {
 // d'imports quotidiens une fois en production.
 Schedule::command('geo:resolve-districts')->hourly();
 
+// Compteurs dénormalisés (Phase 13) : jamais calculés à l'affichage
+// (config/horizon.php, supervisor-geo). Même cadence horaire que
+// geo:resolve-districts — sûr à rejouer souvent (idempotent).
+Schedule::command('geo:recalculate-companies-counts')->hourly();
+
 // Fin de cycle Phase 07 (visible → expiration → masqué). Quotidien : une
 // fenêtre d'un jour de retard sur le démasquage est acceptable, contrairement
 // à un remasquage prématuré.

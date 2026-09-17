@@ -60,12 +60,20 @@ export function CompanyUsefulLinksBlock({ company }: { company: Company }) {
   const nearby = routableLinks(links.nearby);
   const activityInCity = routableSingleLink(links.activityInCity);
   const activityInNeighborCities = routableLinks(links.activityInNeighborCities);
+  const department = routableSingleLink(links.department);
+  const region = routableSingleLink(links.region);
+  const country = routableSingleLink(links.country);
+  const relatedActivities = routableLinks(links.relatedActivities);
 
   if (
     sameTradeInCity.length === 0 &&
     nearby.length === 0 &&
     activityInCity.length === 0 &&
-    activityInNeighborCities.length === 0
+    activityInNeighborCities.length === 0 &&
+    department.length === 0 &&
+    region.length === 0 &&
+    country.length === 0 &&
+    relatedActivities.length === 0
   ) {
     return null;
   }
@@ -77,6 +85,8 @@ export function CompanyUsefulLinksBlock({ company }: { company: Company }) {
         <LinkGroup title="Entreprises à proximité" entries={nearby} />
         <LinkGroup title="Ce métier dans la commune" entries={activityInCity} />
         <LinkGroup title="Ce métier dans les villes voisines" entries={activityInNeighborCities} />
+        <LinkGroup title="Territoire" entries={[...department, ...region, ...country]} />
+        <LinkGroup title="Activités connexes" entries={relatedActivities} />
       </div>
     </SectionCard>
   );

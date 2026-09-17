@@ -16,6 +16,8 @@ const SECTION_TITLES: Record<string, (activityLabel: string, cityName: string) =
   local_specifics: () => "Spécificités locales",
   local_economy: (activityLabel, cityName) => `Poids économique à ${cityName}`,
   faq: () => "Questions fréquentes",
+  history: (_activityLabel, cityName) => `Histoire et culture à ${cityName}`,
+  leisure: (_activityLabel, cityName) => `Tourisme et loisirs à ${cityName}`,
 };
 
 export function CityActivityContentBlock({

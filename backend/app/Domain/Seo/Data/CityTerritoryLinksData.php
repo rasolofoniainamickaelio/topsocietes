@@ -23,6 +23,8 @@ class CityTerritoryLinksData extends Data
      */
     public function __construct(
         public readonly InternalLinkData $country,
+        public readonly ?InternalLinkData $region,
+        public readonly ?InternalLinkData $department,
         public readonly array $activities,
     ) {}
 }

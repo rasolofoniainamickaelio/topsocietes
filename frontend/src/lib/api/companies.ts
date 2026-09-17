@@ -10,11 +10,12 @@ import type { CompanyListPage } from "@/types/company-list";
  */
 export async function listCompanies(
   country: string,
-  { city, activity, cursor }: { city?: string; activity?: string; cursor?: string },
+  { city, activity, sector, cursor }: { city?: string; activity?: string; sector?: string; cursor?: string },
 ): Promise<CompanyListPage> {
   const params = new URLSearchParams();
   if (city) params.set("city", city);
   if (activity) params.set("activity", activity);
+  if (sector) params.set("sector", sector);
   if (cursor) params.set("cursor", cursor);
 
   return apiFetch<CompanyListPage>(country, `/companies?${params.toString()}`);

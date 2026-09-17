@@ -44,9 +44,13 @@ it('writes a sitemap shard file containing only indexable routes', function (): 
 });
 
 it('produces nothing for a page type with no indexable route', function (): void {
+    // Depuis la Phase 13, un pays a toujours au moins une route indexable
+    // (sa propre page d'accueil, synchronisée à la création par
+    // `CountryObserver`) — l'absence de route ne se vérifie donc plus
+    // globalement, mais par type de page (ici : aucune entreprise).
     app(GenerateSitemapsAction::class)->execute($this->country);
 
-    expect(SitemapShard::query()->where('country_id', $this->country->id)->count())->toBe(0);
+    expect(SitemapShard::query()->where('country_id', $this->country->id)->where('type', PageType::Company)->count())->toBe(0);
 });
 
 it('prunes a shard that no longer has any route once the count shrinks', function (): void {

@@ -28,6 +28,17 @@ class CountryResource extends JsonResource
             'admin_level_labels' => $this->admin_level_labels,
             'identifier_config' => $this->identifier_config,
             'url_patterns' => $this->url_patterns,
+            // Attributs transitoires posés par `CountryController`
+            // (Phase 13), même patron que `CityResource`.
+            ...($this->offsetExists('page_path')
+                ? ['path' => $this->resource->getAttribute('page_path')]
+                : []),
+            ...($this->offsetExists('page_links')
+                ? ['links' => $this->resource->getAttribute('page_links')]
+                : []),
+            ...($this->offsetExists('page_route') && $this->resource->getAttribute('page_route') !== null
+                ? ['is_indexable' => $this->resource->getAttribute('page_route')->is_indexable]
+                : []),
         ];
     }
 }

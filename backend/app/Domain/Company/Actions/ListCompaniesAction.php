@@ -39,6 +39,10 @@ class ListCompaniesAction
                 filled($data->activity),
                 fn ($query) => $query->whereHas('activity', fn ($q) => $q->where('slug', $data->activity)),
             )
+            ->when(
+                filled($data->sector),
+                fn ($query) => $query->whereHas('activity.sectors', fn ($q) => $q->where('slug', $data->sector)),
+            )
             ->with(['city', 'district', 'activity'])
             ->orderBy('legal_name')
             ->orderBy('id')

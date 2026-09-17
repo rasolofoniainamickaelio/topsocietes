@@ -13,11 +13,13 @@ use App\Domain\Geo\Models\CityNeighbor;
 use App\Domain\Geo\Models\Country;
 use App\Domain\Geo\Queries\NearbyCompaniesQuery;
 use App\Domain\Seo\Actions\BuildActivityCityPathAction;
+use App\Domain\Seo\Actions\BuildCountryPathAction;
 use App\Domain\Seo\Data\CompanyLinksData;
 use App\Domain\Seo\Data\InternalLinkData;
 use App\Domain\Seo\Enums\PageType;
 use App\Domain\Seo\Models\PageRoute;
 use App\Domain\Taxonomy\Models\Activity;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -37,6 +39,7 @@ class InternalLinkingService
         private readonly NearbyCompaniesQuery $nearbyCompanies,
         private readonly BuildCompanyPathAction $buildCompanyPath,
         private readonly BuildActivityCityPathAction $buildActivityCityPath,
+        private readonly BuildCountryPathAction $buildCountryPath,
     ) {}
 
     public function forCompany(Company $company): CompanyLinksData
@@ -63,8 +66,8 @@ class InternalLinkingService
             nearby: $this->nearby($company),
             activityInCity: $this->activityInCity($company),
             activityInNeighborCities: $this->activityInNeighborCities($company),
-            department: $this->adminDivisionLink($department),
-            region: $this->adminDivisionLink($region),
+            department: $this->adminDivisionLink($department, $company->country),
+            region: $this->adminDivisionLink($region, $company->country),
             country: $this->countryLink($company->country),
             relatedActivities: $this->relatedActivities($company),
             companyCreation: $this->companyCreationLink($company->country),
@@ -171,25 +174,22 @@ class InternalLinkingService
         );
     }
 
-    private function adminDivisionLink(?AdminDivision $division): ?InternalLinkData
+    private function adminDivisionLink(?AdminDivision $division, Country $country): ?InternalLinkData
     {
-        if ($division === null || ! $this->isIndexable(PageType::AdminDivision, $division->id)) {
+        if ($division === null) {
             return null;
         }
 
-        return new InternalLinkData(
-            type: PageType::AdminDivision,
-            label: $division->name,
-            params: ['slug' => $division->slug],
-        );
+        return $this->routableEntityLink($division, PageType::AdminDivision, $division->name, $country);
     }
 
     private function countryLink(Country $country): InternalLinkData
     {
         return new InternalLinkData(
-            type: PageType::Editorial,
+            type: PageType::Country,
             label: $country->name,
             params: ['countryCode' => $country->code],
+            path: $this->buildCountryPath->execute(),
         );
     }
 
@@ -214,14 +214,41 @@ class InternalLinkingService
             ->orderBy('public_label')
             ->limit(self::MAX_PER_GROUP)
             ->get()
-            ->filter(fn (Activity $related) => $this->isIndexable(PageType::Activity, $related->id))
-            ->map(fn (Activity $related) => new InternalLinkData(
-                type: PageType::Activity,
-                label: $related->public_label,
-                params: ['slug' => $related->slug],
+            ->map(fn (Activity $related) => $this->routableEntityLink(
+                $related,
+                PageType::Activity,
+                $related->public_label,
+                $company->country,
             ))
+            ->filter()
             ->values()
             ->all();
+    }
+
+    /**
+     * Lien vers une entité déjà synchronisée dans `routes` (même règle que
+     * `TerritoryLinkingService`, Phase 13) — jamais un path inventé vers
+     * une page absente (CLAUDE.md §6.5).
+     */
+    private function routableEntityLink(Model $entity, PageType $pageType, string $label, Country $country): ?InternalLinkData
+    {
+        $route = PageRoute::query()
+            ->where('country_id', $country->id)
+            ->where('entity_type', $entity->getMorphClass())
+            ->where('entity_id', $entity->getKey())
+            ->where('page_type', $pageType)
+            ->first();
+
+        if ($route === null || ! $route->is_indexable) {
+            return null;
+        }
+
+        return new InternalLinkData(
+            type: $pageType,
+            label: $label,
+            params: ['slug' => (string) $entity->getAttribute('slug')],
+            path: $route->path,
+        );
     }
 
     /**
@@ -241,6 +268,7 @@ class InternalLinkingService
             type: PageType::Editorial,
             label: 'Créer mon entreprise',
             params: ['path' => $path],
+            path: $path,
         );
     }
 

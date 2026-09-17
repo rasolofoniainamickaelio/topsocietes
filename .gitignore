@@ -1,3 +1,7 @@
 # Données réelles fournies pour l'import Maroc — volumineux (16 Mo),
 # entreprises réelles scrapées : jamais poussé sur Git.
 docs/MAROC_ENTREPRISE.xlsx
+
+# Secrets Trello (ne pas committer)
+.env.trello
+.env

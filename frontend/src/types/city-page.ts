@@ -23,6 +23,8 @@ export interface InternalLink {
 /** Miroir de `App\Domain\Seo\Data\CityTerritoryLinksData` (backend, Phase 13). */
 export interface CityTerritoryLinks {
   country: InternalLink;
+  region: InternalLink | null;
+  department: InternalLink | null;
   activities: InternalLink[];
 }
 
