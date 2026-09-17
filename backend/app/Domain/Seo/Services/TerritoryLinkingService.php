@@ -20,11 +20,13 @@ use App\Domain\Seo\Models\PageRoute;
 use App\Domain\Taxonomy\Models\Activity;
 use App\Domain\Taxonomy\Models\Sector;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Maillage des pages territoriales elles-mêmes (Phase 13) — distinct
  * d'`InternalLinkingService` (Phase 15), qui ne sert que les fiches
- * entreprise.
+ * entreprise. `forCity` est mis en cache (Phase 20, TTL 15 min) : la
+ * résolution des activités routables est coûteuse et change rarement.
  */
 class TerritoryLinkingService
 {
@@ -32,9 +34,25 @@ class TerritoryLinkingService
 
     private const MAX_CHILDREN = 50;
 
+    private const CITY_CACHE_TTL_SECONDS = 900;
+
     public function __construct(private readonly BuildActivityCityPathAction $buildActivityCityPath) {}
 
     public function forCity(City $city, Country $country): CityTerritoryLinksData
+    {
+        return Cache::remember(
+            self::cityCacheKey($country, $city),
+            self::CITY_CACHE_TTL_SECONDS,
+            fn () => $this->buildForCity($city, $country),
+        );
+    }
+
+    public static function cityCacheKey(Country $country, City $city): string
+    {
+        return "territory-links:city:{$country->id}:{$city->id}";
+    }
+
+    private function buildForCity(City $city, Country $country): CityTerritoryLinksData
     {
         $department = $city->adminDivision;
         $region = $department?->parent;

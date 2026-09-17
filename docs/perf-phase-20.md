@@ -34,3 +34,14 @@ Déjà couvert par `tests/Feature/Search/SearchPerformanceTest.php` (Phase 14, M
 ## Méthode de suivi
 
 Les deux tests de performance (`CompanyShowPerformanceTest`, `SearchPerformanceTest`) sont marqués `->group('performance')` et servent de garde-fou de non-régression — ils échouent si un futur changement réintroduit un N+1 ou dégrade le temps de réponse en dessous du seuil mesuré, plutôt que de documenter un chiffre qui se périme dès le prochain changement de volume de données.
+
+## 5. Cache page activité×ville + maillage ville (complément)
+
+Reporté depuis la Phase 12 : `ActivityCityShowController` recalculait à chaque hit les blocs croisés/métier/tourisme, les voisins et l'indexabilité.
+
+**Après** : `ActivityCityPageQuery` met cet assemblage en cache (`Cache::remember`, TTL 15 min, clé `activity-city-page:{country}:{city}:{activity}`). Les 404 restent hors cache (`ShowCityAction` / `ShowActivityAction`).
+
+Même TTL sur `TerritoryLinkingService::forCity` (activités routables d'une ville), clé `territory-links:city:{country}:{city}`.
+
+**Mesure** — `tests/Feature/Api/ActivityCityShowPerformanceTest.php` : le 2ᵉ `execute()` ne déclenche aucune requête SQL (cache hit).
+

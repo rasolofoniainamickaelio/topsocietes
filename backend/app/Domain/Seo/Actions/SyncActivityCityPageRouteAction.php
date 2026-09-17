@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\Seo\Actions;
 
+use App\Domain\Content\Queries\ActivityCityPageQuery;
 use App\Domain\Geo\Models\City;
 use App\Domain\Geo\Models\Country;
 use App\Domain\Seo\Enums\PageType;
 use App\Domain\Seo\Models\PageRoute;
+use App\Domain\Seo\Services\TerritoryLinkingService;
 use App\Domain\Taxonomy\Models\Activity;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Miroir de `SyncPageRouteAction`, pour une page composite (Phase 12) sans
@@ -33,6 +36,11 @@ class SyncActivityCityPageRouteAction
         );
 
         $this->evaluate->execute($route);
+
+        // Invalidation Phase 20 : le maillage ville et la page composite
+        // peuvent désormais exposer ce chemin.
+        Cache::forget(TerritoryLinkingService::cityCacheKey($country, $city));
+        Cache::forget(ActivityCityPageQuery::cacheKey($country, $city, $activity));
 
         return $route->fresh();
     }
