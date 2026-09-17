@@ -24,9 +24,24 @@ use XMLReader;
  */
 class StartImportBatchAction
 {
-    public function execute(Country $country, string $storedPath, ImportFormat $format, ImportMapping $mapping, ?User $triggeredBy = null): ImportBatch
-    {
+    /**
+     * @param  array{limit?: int, dry_run?: bool, chunk_size?: int}|null  $options
+     */
+    public function execute(
+        Country $country,
+        string $storedPath,
+        ImportFormat $format,
+        ImportMapping $mapping,
+        ?User $triggeredBy = null,
+        ?array $options = null,
+    ): ImportBatch {
         $absolutePath = Storage::disk('local')->path($storedPath);
+        $options ??= [];
+        $totalRows = $this->countRows($absolutePath, $format);
+
+        if (isset($options['limit']) && is_numeric($options['limit'])) {
+            $totalRows = min($totalRows, max(0, (int) $options['limit']));
+        }
 
         $batch = ImportBatch::query()->create([
             'country_id' => $country->id,
@@ -34,9 +49,10 @@ class StartImportBatchAction
             'format' => $format,
             'mapping_id' => $mapping->id,
             'triggered_by' => $triggeredBy?->id,
-            'total_rows' => $this->countRows($absolutePath, $format),
+            'total_rows' => $totalRows,
             'status' => ImportStatus::Pending,
             'checkpoint' => ['offset' => 0],
+            'options' => $options,
         ]);
 
         ProcessImportBatchChunkJob::dispatch($batch);

@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             PlanSeeder::class,
             AdSlotSeeder::class,
             PagePublicationRuleSeeder::class,
+            MoroccoImportMappingSeeder::class,
         ]);
 
         $admin = User::factory()->create([

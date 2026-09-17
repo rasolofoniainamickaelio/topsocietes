@@ -25,7 +25,10 @@ class ProcessImportBatchChunkJob implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    public function __construct(public readonly ImportBatch $batch) {}
+    public function __construct(public readonly ImportBatch $batch)
+    {
+        $this->onQueue('imports');
+    }
 
     public function handle(ProcessImportChunkAction $action): void
     {

@@ -12,9 +12,9 @@ use App\Models\User;
 use Illuminate\Console\Command;
 
 /**
- * Point d'entrée manuel de la Phase 03. Fine à dessein : résout ses
- * paramètres puis délègue tout le travail à `StartImportBatchAction`
- * (CLAUDE.md §3 — un contrôleur/une commande orchestre, ne décide pas).
+ * Point d'entrée manuel de la Phase 03 (+ options Phase 19 : `--limit`,
+ * `--dry-run`). Fine à dessein : résout ses paramètres puis délègue à
+ * `StartImportBatchAction` (CLAUDE.md §3).
  */
 class ImportCompaniesCommand extends Command
 {
@@ -23,7 +23,9 @@ class ImportCompaniesCommand extends Command
         {country : Sous-domaine du pays, ex. fr}
         {--format=csv : Format du fichier (csv, json, xml)}
         {--mapping= : ID du mapping à utiliser (sinon le mapping par défaut du pays)}
-        {--user= : ID de l\'utilisateur à l\'origine de l\'import, pour la journalisation}';
+        {--user= : ID de l\'utilisateur à l\'origine de l\'import, pour la journalisation}
+        {--limit= : Nombre max de lignes à traiter (Phase 19, test industriel)}
+        {--dry-run : Simule l\'import sans écrire d\'entreprises (Phase 19)}';
 
     protected $description = "Démarre l'import d'un fichier d'entreprises pour un pays donné";
 
@@ -60,9 +62,35 @@ class ImportCompaniesCommand extends Command
             ? User::query()->find($this->option('user'))
             : null;
 
-        $batch = $action->execute($country, $this->argument('path'), $format, $mapping, $triggeredBy);
+        $options = [];
 
-        $this->info("Lot d'import #{$batch->id} démarré : {$batch->total_rows} ligne(s) à traiter.");
+        if ($this->option('limit') !== null && $this->option('limit') !== '') {
+            $limit = (int) $this->option('limit');
+
+            if ($limit < 1) {
+                $this->error('--limit doit être un entier ≥ 1.');
+
+                return self::FAILURE;
+            }
+
+            $options['limit'] = $limit;
+        }
+
+        if ((bool) $this->option('dry-run')) {
+            $options['dry_run'] = true;
+        }
+
+        $batch = $action->execute(
+            $country,
+            $this->argument('path'),
+            $format,
+            $mapping,
+            $triggeredBy,
+            $options === [] ? null : $options,
+        );
+
+        $mode = ($options['dry_run'] ?? false) ? ' (dry-run)' : '';
+        $this->info("Lot d'import #{$batch->id} démarré{$mode} : {$batch->total_rows} ligne(s) à traiter.");
 
         return self::SUCCESS;
     }

@@ -57,21 +57,36 @@ class ProcessImportChunkAction
         $country = $batch->country;
         $offset = (int) ($batch->checkpoint['offset'] ?? 0);
         $chunkSize = (int) ($batch->options['chunk_size'] ?? self::CHUNK_SIZE);
+        $dryRun = (bool) ($batch->options['dry_run'] ?? false);
+        $rowLimit = isset($batch->options['limit']) ? (int) $batch->options['limit'] : null;
+
+        // Plafond explicite (Phase 19) : ne jamais lire au-delà de `limit`,
+        // même si le fichier source est plus long que `total_rows`.
+        if ($rowLimit !== null) {
+            $remaining = max(0, $rowLimit - $offset);
+            $chunkSize = min($chunkSize, $remaining);
+        }
 
         $absolutePath = Storage::disk('local')->path($batch->filename);
-        $rows = $this->readRows($absolutePath, $batch->format, $offset, $chunkSize);
+        $rows = $chunkSize === 0
+            ? []
+            : $this->readRows($absolutePath, $batch->format, $offset, $chunkSize);
 
         $created = 0;
         $updated = 0;
         $skipped = 0;
         $duplicates = 0;
         $errors = 0;
+        $cityResolved = 0;
+        $activityResolved = 0;
+        /** @var array<string, int> $errorCodes */
+        $errorCodes = (array) ($batch->options['error_codes'] ?? []);
 
         foreach ($rows as $index => $rawRow) {
             $rowNumber = $index + 1;
 
             try {
-                $outcome = $this->processRow($batch, $mapping, $country, $rawRow, $duplicates);
+                $outcome = $this->processRow($batch, $mapping, $country, $rawRow, $duplicates, $dryRun, $cityResolved, $activityResolved);
 
                 match ($outcome) {
                     'created' => $created++,
@@ -80,16 +95,27 @@ class ProcessImportChunkAction
                 };
             } catch (MissingRequiredFieldException $e) {
                 $errors++;
-                $this->logError($batch, $rowNumber, $rawRow, 'missing_required_field', $e->getMessage());
+                $errorCodes['missing_required_field'] = ($errorCodes['missing_required_field'] ?? 0) + 1;
+                if (! $dryRun) {
+                    $this->logError($batch, $rowNumber, $rawRow, 'missing_required_field', $e->getMessage());
+                }
             } catch (Throwable $e) {
                 $errors++;
-                $this->logError($batch, $rowNumber, $rawRow, 'processing_error', $e->getMessage());
+                $errorCodes['processing_error'] = ($errorCodes['processing_error'] ?? 0) + 1;
+                if (! $dryRun) {
+                    $this->logError($batch, $rowNumber, $rawRow, 'processing_error', $e->getMessage());
+                }
             }
         }
 
         $processedThisChunk = count($rows);
         $newOffset = $offset + $processedThisChunk;
         $hasMore = $processedThisChunk > 0 && $newOffset < $batch->total_rows;
+
+        $options = $batch->options ?? [];
+        $options['error_codes'] = $errorCodes;
+        $options['city_resolved_count'] = (int) ($options['city_resolved_count'] ?? 0) + $cityResolved;
+        $options['activity_resolved_count'] = (int) ($options['activity_resolved_count'] ?? 0) + $activityResolved;
 
         $batch->update([
             'processed_rows' => $batch->processed_rows + $processedThisChunk,
@@ -101,6 +127,7 @@ class ProcessImportChunkAction
             'checkpoint' => ['offset' => $newOffset],
             'status' => $hasMore ? ImportStatus::Running : ImportStatus::Completed,
             'finished_at' => $hasMore ? null : now(),
+            'options' => $options,
         ]);
 
         return $hasMore;
@@ -124,16 +151,26 @@ class ProcessImportChunkAction
         }
 
         $duplicates = 0;
+        $cityResolved = 0;
+        $activityResolved = 0;
 
-        return $this->processRow($batch, $mapping, $batch->country, $rawRow, $duplicates);
+        return $this->processRow($batch, $mapping, $batch->country, $rawRow, $duplicates, false, $cityResolved, $activityResolved);
     }
 
     /**
      * @param  array<string, mixed>  $rawRow
      * @return 'created'|'updated'|'skipped'
      */
-    private function processRow(ImportBatch $batch, ImportMapping $mapping, Country $country, array $rawRow, int &$duplicates): string
-    {
+    private function processRow(
+        ImportBatch $batch,
+        ImportMapping $mapping,
+        Country $country,
+        array $rawRow,
+        int &$duplicates,
+        bool $dryRun,
+        int &$cityResolved,
+        int &$activityResolved,
+    ): string {
         $mapped = $this->mapRow($mapping, $rawRow);
 
         $nationalId = $mapped['national_id'] ?? null;
@@ -150,6 +187,15 @@ class ProcessImportChunkAction
 
         $city = $this->resolveCity($country, $mapped);
         $activity = $this->resolveActivity($country, $mapped);
+
+        if ($city !== null) {
+            $cityResolved++;
+        }
+
+        if ($activity !== null) {
+            $activityResolved++;
+        }
+
         $status = CompanyStatus::tryFrom(mb_strtolower((string) ($mapped['status'] ?? ''))) ?? CompanyStatus::Unknown;
 
         $fields = [
@@ -177,6 +223,18 @@ class ProcessImportChunkAction
             ->where('country_id', $country->id)
             ->where('national_id', $nationalId)
             ->first();
+
+        if ($dryRun) {
+            if ($existing === null) {
+                return 'created';
+            }
+
+            if ($existing->source_batch_id === $batch->id) {
+                $duplicates++;
+            }
+
+            return $existing->data_hash === $dataHash ? 'skipped' : 'updated';
+        }
 
         if ($existing === null) {
             Company::query()->create([
