@@ -17,4 +17,9 @@ export type ResolvedPath =
       entity_type: string | null;
       entity_id: number | null;
       is_indexable: boolean;
+      /**
+       * Soft-canonical (Phase 18) : chemin de la route canonique si
+       * `canonical_route_id` est renseigné, sinon `null` (auto-référent).
+       */
+      canonical_path: string | null;
     };

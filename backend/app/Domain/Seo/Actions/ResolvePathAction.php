@@ -44,12 +44,16 @@ class ResolvePathAction
             ->first();
 
         if ($route !== null) {
+            $route->loadMissing('canonicalRoute');
+
             return [
                 'type' => 'route',
                 'page_type' => $route->page_type->value,
                 'entity_type' => $route->entity_type,
                 'entity_id' => $route->entity_id,
                 'is_indexable' => $route->is_indexable,
+                // Soft-canonical (Phase 18) : null = auto-référent côté front.
+                'canonical_path' => $route->canonicalRoute?->path,
             ];
         }
 

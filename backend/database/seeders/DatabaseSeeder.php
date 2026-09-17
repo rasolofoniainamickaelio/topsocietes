@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             AiPromptSeeder::class,
             PlanSeeder::class,
             AdSlotSeeder::class,
+            PagePublicationRuleSeeder::class,
         ]);
 
         $admin = User::factory()->create([

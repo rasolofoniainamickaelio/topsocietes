@@ -40,7 +40,25 @@ it('resolves a known route when no redirect matches', function (): void {
 
     $response->assertOk()
         ->assertJsonPath('data.type', 'route')
-        ->assertJsonPath('data.page_type', 'city');
+        ->assertJsonPath('data.page_type', 'city')
+        ->assertJsonPath('data.canonical_path', null);
+});
+
+it('exposes the soft-canonical path when a route points to another route', function (): void {
+    $country = Country::factory()->create(['subdomain' => 'fr', 'is_active' => true]);
+    $canonical = PageRoute::factory()->for($country)->create(['path' => '/villes/paris']);
+    PageRoute::factory()->for($country)->create([
+        'path' => '/paris',
+        'canonical_route_id' => $canonical->id,
+        'is_indexable' => false,
+    ]);
+
+    $response = $this->getJson('/api/v1/fr/resolve?path=/paris');
+
+    $response->assertOk()
+        ->assertJsonPath('data.type', 'route')
+        ->assertJsonPath('data.is_indexable', false)
+        ->assertJsonPath('data.canonical_path', '/villes/paris');
 });
 
 it('returns 404 for an unknown path', function (): void {

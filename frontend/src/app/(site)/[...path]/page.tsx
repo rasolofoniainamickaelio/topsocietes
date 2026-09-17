@@ -72,19 +72,21 @@ async function resolve(path: string): Promise<{ country: Country; resolved: Reso
 }
 
 /**
- * Canonical AUTO-RÉFÉRENT sur le chemin réellement demandé (Phase 16) :
- * cette page n'est atteinte que si `/resolve` a fait correspondre ce
- * chemin exact à une route, donc il est par construction le chemin
- * définitif. `noindex` uniquement si `is_indexable` vaut explicitement
- * `false` (résultat de `/resolve`, Phase 18) — son absence reste indexable
- * par défaut.
+ * Canonical : soft-canonical (`canonical_path` Phase 18) s'il est fourni
+ * par `/resolve`, sinon auto-référent sur le chemin demandé (Phase 16).
+ * `noindex` si la route n'est pas indexable, OU si des paramètres d'URL
+ * de pagination/filtre (`cursor`, …) sont présents — le canonical reste
+ * sans query string.
  */
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ path: string[] }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const { path } = await params;
+  const query = await searchParams;
   const requestPath = `/${path.join("/")}`;
   const match = await resolve(requestPath);
 
@@ -94,7 +96,23 @@ export async function generateMetadata({
 
   const { country, resolved } = match;
   const host = (await headers()).get("host");
-  const robots = resolved.is_indexable === false ? { index: false, follow: false } : undefined;
+  const hasQueryParams = Object.values(query).some((value) => {
+    if (Array.isArray(value)) {
+      return value.some((entry) => entry !== "");
+    }
+
+    return value !== undefined && value !== "";
+  });
+
+  const robots =
+    resolved.is_indexable === false
+      ? { index: false, follow: false }
+      : hasQueryParams
+        ? { index: false, follow: true }
+        : undefined;
+
+  const canonicalPath = resolved.canonical_path ?? requestPath;
+  const alternates = host ? { canonical: `https://${host}${canonicalPath}` } : undefined;
 
   if (resolved.page_type === "company") {
     if (resolved.entity_id === null) {
@@ -109,7 +127,7 @@ export async function generateMetadata({
 
     return {
       title: company.legal_name,
-      alternates: host ? { canonical: `https://${host}${requestPath}` } : undefined,
+      alternates,
       robots,
     };
   }
@@ -123,7 +141,7 @@ export async function generateMetadata({
 
     return {
       title: `${page.activity.label} à ${page.city.name}`,
-      alternates: host ? { canonical: `https://${host}${requestPath}` } : undefined,
+      alternates,
       robots,
     };
   }
@@ -137,7 +155,7 @@ export async function generateMetadata({
 
     return {
       title: city.name,
-      alternates: host ? { canonical: `https://${host}${requestPath}` } : undefined,
+      alternates,
       robots,
     };
   }
@@ -151,7 +169,7 @@ export async function generateMetadata({
 
     return {
       title: division.name,
-      alternates: host ? { canonical: `https://${host}${requestPath}` } : undefined,
+      alternates,
       robots,
     };
   }
@@ -165,7 +183,7 @@ export async function generateMetadata({
 
     return {
       title: activity.label,
-      alternates: host ? { canonical: `https://${host}${requestPath}` } : undefined,
+      alternates,
       robots,
     };
   }
@@ -179,7 +197,7 @@ export async function generateMetadata({
 
     return {
       title: sector.name,
-      alternates: host ? { canonical: `https://${host}${requestPath}` } : undefined,
+      alternates,
       robots,
     };
   }
